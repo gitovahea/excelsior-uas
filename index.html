@@ -36,6 +36,17 @@ let score=0, hiScore=+(localStorage.getItem('droneHi')||0), frame=0, speed=3, sh
 let held=false;
 let lastGapY=null;
 
+// ── GLOBAL HIGH SCORE (Firebase) ─────────────────────────
+const FB_URL='https://drone-runner-eb952-default-rtdb.firebaseio.com/hiscore.json';
+let worldHi=0;
+function fetchWorldHi(){
+  fetch(FB_URL).then(r=>r.json()).then(v=>{ if(v>0){ worldHi=v; if(v>hiScore) hiScore=v; } }).catch(()=>{});
+}
+function pushWorldHi(s){
+  fetch(FB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(s)}).catch(()=>{});
+}
+fetchWorldHi();
+
 // ── AUDIO ────────────────────────────────────────────────
 let audioCtx=null;
 let droneOsc=null, droneLFO=null, droneGainNode=null;
@@ -480,6 +491,12 @@ function drawStartScreen(){
   ctx.fillStyle='#556688';
   ctx.font=`${Math.max(10,Math.round(13*SC))}px Courier New`;
   ctx.fillText('Collect batteries  ·  Dodge buildings',W/2,H/2+tf*1.2);
+  if(worldHi>0){
+    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=8;
+    ctx.font=`${Math.max(10,Math.round(13*SC))}px Courier New`;
+    ctx.fillText(`✦  WORLD  ${Math.floor(worldHi)}  ✦`,W/2,H/2+tf*1.55);
+    ctx.shadowBlur=0;
+  }
   ctx.textAlign='left';
 }
 
@@ -493,14 +510,18 @@ function drawGameOverScreen(){
   ctx.shadowColor='#ffffff'; ctx.shadowBlur=10;
   ctx.fillStyle='#ffffff'; ctx.font=`bold ${Math.round(tf*0.62)}px Courier New`;
   ctx.fillText(`SCORE  ${Math.floor(score)}`,W/2,H/2+8);
-  if(Math.floor(score)>=Math.floor(hiScore)){
+  if(Math.floor(score)>Math.floor(worldHi)&&worldHi>0){
+    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00';
+    ctx.font=`${Math.round(tf*0.38)}px Courier New`;
+    ctx.fillText('✦  WORLD RECORD  ✦',W/2,H/2+tf*0.72);
+  } else if(Math.floor(score)>=Math.floor(hiScore)&&hiScore>0){
     ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00';
     ctx.font=`${Math.round(tf*0.38)}px Courier New`;
     ctx.fillText('✦  NEW HIGH SCORE  ✦',W/2,H/2+tf*0.72);
   } else {
     ctx.shadowBlur=0; ctx.fillStyle='#5566aa';
     ctx.font=`${Math.round(tf*0.34)}px Courier New`;
-    ctx.fillText(`BEST  ${Math.floor(hiScore)}`,W/2,H/2+tf*0.72);
+    ctx.fillText(`BEST  ${Math.floor(hiScore)}  ·  WORLD  ${Math.floor(worldHi)}`,W/2,H/2+tf*0.72);
   }
   ctx.shadowBlur=0; ctx.fillStyle='#445577';
   ctx.font=`${Math.max(10,Math.round(tf*0.28))}px Courier New`;
@@ -513,6 +534,7 @@ let buildings=[], batteries=[], bTimer=0, batTimer=0;
 
 function startGame(){
   if(score>hiScore){ hiScore=score; localStorage.setItem('droneHi',hiScore); }
+  if(score>worldHi){ worldHi=score; pushWorldHi(score); }
   score=0; frame=0; speed=3; shake=0; held=false;
   lastGapY=null;
   buildings=[]; batteries=[]; particles=[]; bTimer=0; batTimer=0;
