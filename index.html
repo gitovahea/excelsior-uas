@@ -552,7 +552,7 @@ function loop(ts){
     buildings.forEach(b=>{
       b.update();
       if(!b.scored&&b.x+b.w<drone.x){ b.scored=true; score+=10; }
-      if(b.hits(drone)) drone.die();
+      if(!b.scored && b.hits(drone)) drone.die();
     });
     batteries=batteries.filter(b=>b.x>-50&&!b.taken);
     batteries.forEach(b=>{
