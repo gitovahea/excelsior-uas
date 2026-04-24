@@ -32,8 +32,9 @@ window.addEventListener('resize', () => { setupCanvas(); stars.length=0; initSta
 // ── STATE ────────────────────────────────────────────────
 const S = { START:0, PLAY:1, DYING:2, OVER:3 };
 let state = S.START;
-let score=0, hiScore=0, frame=0, speed=3, shake=0;
+let score=0, hiScore=+(localStorage.getItem('droneHi')||0), frame=0, speed=3, shake=0;
 let held=false;
+let lastGapY=null;
 
 // ── AUDIO ────────────────────────────────────────────────
 let audioCtx=null;
@@ -346,7 +347,16 @@ class Building {
   constructor(){
     this.x=W+60;
     const gap=Math.max(H*0.35, H*0.58 - score*(H/2000));
-    const gapY=H*0.1+Math.random()*(H-gap-H*0.2);
+    const minGY=H*0.1, maxGY=H*0.9-gap;
+    let gapY;
+    if(lastGapY===null){
+      gapY=minGY+Math.random()*(maxGY-minGY);
+    } else {
+      // limit gap shift so consecutive passages are always reachable
+      const maxShift=H*0.28;
+      gapY=Math.max(minGY,Math.min(maxGY, lastGapY+(Math.random()*2-1)*maxShift));
+    }
+    lastGapY=gapY;
     this.topH=gapY; this.botY=gapY+gap; this.botH=H-this.botY;
     this.w=Math.max(50, Math.round(W*0.076));
     this.scored=false; this.hue=210+Math.random()*50;
@@ -354,7 +364,7 @@ class Building {
   update(){ this.x-=speed; }
   draw(){
     const col=`hsl(${this.hue},50%,18%)`, edge=`hsl(${this.hue},80%,55%)`;
-    ctx.shadowColor=edge; ctx.shadowBlur=8;
+    ctx.shadowColor=edge; ctx.shadowBlur=5;
     ctx.fillStyle=col; ctx.fillRect(this.x,0,this.w,this.topH);
     ctx.fillStyle=edge; ctx.fillRect(this.x,this.topH-4,this.w,4);
     ctx.fillStyle=col; ctx.fillRect(this.x,this.botY,this.w,this.botH);
@@ -371,9 +381,9 @@ class Building {
     ctx.shadowBlur=0;
   }
   hits(d){
-    const hw=Math.round(24*SC), hh=Math.round(10*SC);
+    const hw=Math.round(22*SC), hh=Math.round(8*SC);
     return d.x+hw>this.x && d.x-hw<this.x+this.w &&
-           (d.y-hh<this.topH || d.y+hh>this.botY);
+           (d.y-hh<this.topH-3 || d.y+hh>this.botY+3);
   }
 }
 
@@ -501,8 +511,9 @@ function drawGameOverScreen(){
 let buildings=[], batteries=[], bTimer=0, batTimer=0;
 
 function startGame(){
-  if(score>hiScore) hiScore=score;
+  if(score>hiScore){ hiScore=score; localStorage.setItem('droneHi',hiScore); }
   score=0; frame=0; speed=3; shake=0; held=false;
+  lastGapY=null;
   buildings=[]; batteries=[]; particles=[]; bTimer=0; batTimer=0;
   drone.reset();
   if(audioCtx) restartBGM();
