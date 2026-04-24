@@ -45,6 +45,108 @@ let state = S.START;
 let score = 0, hiScore = 0, frame = 0, speed = 3, shake = 0;
 let held = false;
 
+// ── AUDIO ────────────────────────────────────────────────
+let audioCtx = null;
+let droneOsc = null, droneLFO = null, droneGainNode = null;
+let bgmMaster = null, bgmStarted = false;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  bgmMaster = audioCtx.createGain();
+  bgmMaster.gain.value = 0.5;
+  bgmMaster.connect(audioCtx.destination);
+  scheduleBGM();
+}
+
+function startDroneSound() {
+  if (!audioCtx || droneOsc) return;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass'; filter.frequency.value = 280; filter.Q.value = 2.5;
+  droneGainNode = audioCtx.createGain();
+  droneGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+  droneGainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.07);
+  droneOsc = audioCtx.createOscillator();
+  droneOsc.type = 'sawtooth'; droneOsc.frequency.value = 130;
+  droneLFO = audioCtx.createOscillator();
+  const lfoG = audioCtx.createGain();
+  droneLFO.frequency.value = 55; lfoG.gain.value = 35;
+  droneLFO.connect(lfoG); lfoG.connect(droneOsc.frequency);
+  droneOsc.connect(filter); filter.connect(droneGainNode);
+  droneGainNode.connect(audioCtx.destination);
+  droneLFO.start(); droneOsc.start();
+}
+
+function stopDroneSound() {
+  if (!droneGainNode) return;
+  droneGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.18);
+  const o = droneOsc, l = droneLFO;
+  droneOsc = null; droneLFO = null; droneGainNode = null;
+  setTimeout(() => { try { o.stop(); l.stop(); } catch(e){} }, 250);
+}
+
+function scheduleBGM() {
+  if (bgmStarted || !audioCtx) return;
+  bgmStarted = true;
+  const beat = 60 / 74; // 74 BPM lofi
+  // Am7, Fmaj7, Cmaj7, G7  — classic lofi progression
+  const chords = [
+    [110, 130.81, 164.81, 196.00],
+    [87.31, 110.00, 130.81, 174.61],
+    [65.41,  98.00, 130.81, 164.81],
+    [98.00, 123.47, 164.81, 196.00],
+  ];
+  let idx = 0;
+  function playChord() {
+    if (!audioCtx || !bgmMaster) return;
+    const now = audioCtx.currentTime;
+    const dur = beat * 8;
+    // Pad voices
+    chords[idx % 4].forEach(freq => {
+      const osc = audioCtx.createOscillator();
+      const g   = audioCtx.createGain();
+      const lpf = audioCtx.createBiquadFilter();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      osc.detune.value = (Math.random() - 0.5) * 10; // slight lofi detuning
+      lpf.type = 'lowpass'; lpf.frequency.value = 1100;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(0.028, now + 0.4);
+      g.gain.setValueAtTime(0.028, now + dur - 0.5);
+      g.gain.linearRampToValueAtTime(0, now + dur);
+      osc.connect(lpf); lpf.connect(g); g.connect(bgmMaster);
+      osc.start(now); osc.stop(now + dur + 0.1);
+    });
+    // Bass (root, octave below)
+    const bass = audioCtx.createOscillator();
+    const bassG = audioCtx.createGain();
+    const bassF = audioCtx.createBiquadFilter();
+    bass.type = 'sine'; bass.frequency.value = chords[idx % 4][0] / 2;
+    bassF.type = 'lowpass'; bassF.frequency.value = 350;
+    bassG.gain.setValueAtTime(0, now);
+    bassG.gain.linearRampToValueAtTime(0.22, now + 0.06);
+    bassG.gain.linearRampToValueAtTime(0.12, now + beat * 3);
+    bassG.gain.linearRampToValueAtTime(0, now + beat * 5);
+    bass.connect(bassF); bassF.connect(bassG); bassG.connect(bgmMaster);
+    bass.start(now); bass.stop(now + beat * 5.2);
+    // Vinyl crackle
+    const bufLen = Math.floor(audioCtx.sampleRate * 0.4);
+    const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * 0.012;
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buf;
+    const nhp = audioCtx.createBiquadFilter();
+    nhp.type = 'highpass'; nhp.frequency.value = 4000;
+    const ng = audioCtx.createGain(); ng.gain.value = 0.05;
+    noise.connect(nhp); nhp.connect(ng); ng.connect(bgmMaster);
+    noise.start(now);
+    idx++;
+    setTimeout(playChord, (dur - 0.15) * 1000);
+  }
+  playChord();
+}
+
 // ── DRONE ────────────────────────────────────────────────
 const drone = {
   x: 160, y: H / 2, vy: 0,
@@ -70,7 +172,7 @@ const drone = {
     this.vy += 0.46;
     this.y  += this.vy;
     this.rotor += 0.32;
-    this.battery -= 0.06 * (speed / 3);
+    this.battery -= 0.042 * (speed / 3);
     if (this.battery <= 0) { this.battery = 0; this.die(); }
     if (this.y < 8)  { this.y = 8;  this.vy = 0; }
     if (this.y > H - 8) this.die();
@@ -218,7 +320,7 @@ function updateDrawParticles() {
 class Building {
   constructor() {
     this.x = W + 60;
-    const gap = Math.max(150, 230 - score * 0.4);
+    const gap = Math.max(180, 270 - score * 0.28);
     const gapY = 60 + Math.random() * (H - gap - 120);
     this.topH = gapY;
     this.botY = gapY + gap;
@@ -377,11 +479,12 @@ function startGame() {
 }
 
 function handlePress() {
+  initAudio();
   if (state===S.START) startGame();
-  else if (state===S.PLAY) held = true;
+  else if (state===S.PLAY) { held = true; startDroneSound(); }
   else if (state===S.OVER) startGame();
 }
-function handleRelease() { held = false; }
+function handleRelease() { held = false; stopDroneSound(); }
 
 document.addEventListener('keydown',  e => { if(e.code==='Space'){e.preventDefault(); handlePress();} });
 document.addEventListener('keyup',    e => { if(e.code==='Space'){e.preventDefault(); handleRelease();} });
@@ -404,11 +507,11 @@ function loop() {
 
   if (state===S.PLAY) {
     score += 0.055 * (speed/3);
-    speed  = 3 + score * 0.0028;
+    speed  = 3 + score * 0.002;
 
     // spawn buildings
     bTimer++;
-    const bInterval = Math.max(55, 105 - score*0.12);
+    const bInterval = Math.max(68, 120 - score*0.09);
     if (bTimer>bInterval){ buildings.push(new Building()); bTimer=0; }
 
     // spawn batteries
@@ -429,7 +532,7 @@ function loop() {
       b.update();
       if (b.hits(drone)){
         b.taken=true;
-        drone.battery = Math.min(100, drone.battery+35);
+        drone.battery = Math.min(100, drone.battery+45);
         for(let i=0;i<16;i++) addParticle(b.x,b.y,(Math.random()-.5)*5,(Math.random()-.5)*5,'#00ff88',1.1);
       }
     });
