@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DRONE RUNNER</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+  }
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const W = 900, H = 500;
+canvas.width = W;
+canvas.height = H;
+
+function resize() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  canvas.style.width  = (W * s) + 'px';
+  canvas.style.height = (H * s) + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── STATE ────────────────────────────────────────────────
+const S = { START: 0, PLAY: 1, DYING: 2, OVER: 3 };
+let state = S.START;
+let score = 0, hiScore = 0, frame = 0, speed = 3, shake = 0;
+let held = false;
+
+// ── DRONE ────────────────────────────────────────────────
+const drone = {
+  x: 160, y: H / 2, vy: 0,
+  battery: 100, alive: true, rotor: 0,
+  reset() { this.x=160; this.y=H/2; this.vy=0; this.battery=100; this.alive=true; },
+  thrust() {
+    // particles from under each prop (rear at -19, front at +15 relative to drone x)
+    [this.x - 19, this.x + 15].forEach(px => {
+      for (let i = 0; i < 2; i++) addParticle(
+        px + (Math.random()-0.5)*8, this.y - 10,
+        (Math.random()-0.5)*1.5, Math.random()*2.5+1.5,
+        '#00bbff', 0.55
+      );
+    });
+  },
+  update() {
+    if (!this.alive) return;
+    if (held) {
+      this.vy -= 1.1;
+      if (this.vy < -7) this.vy = -7;
+      if (frame % 2 === 0) this.thrust();
+    }
+    this.vy += 0.46;
+    this.y  += this.vy;
+    this.rotor += 0.32;
+    this.battery -= 0.06 * (speed / 3);
+    if (this.battery <= 0) { this.battery = 0; this.die(); }
+    if (this.y < 8)  { this.y = 8;  this.vy = 0; }
+    if (this.y > H - 8) this.die();
+  },
+  die() {
+    if (!this.alive) return;
+    this.alive = false;
+    for (let i = 0; i < 50; i++) {
+      const a = (Math.PI*2/50)*i, sp = Math.random()*6+2;
+      addParticle(this.x, this.y,
+        Math.cos(a)*sp, Math.sin(a)*sp,
+        Math.random()>0.5 ? '#ff5500' : '#ffcc00', 1.6
+      );
+    }
+    shake = 18;
+    state = S.DYING;
+    setTimeout(() => { state = S.OVER; }, 1500);
+  },
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const tilt = Math.max(-0.28, Math.min(0.28, this.vy * 0.04));
+    ctx.rotate(tilt);
+
+    // === REAR ARM ===
+    ctx.fillStyle = '#1c1c38'; ctx.strokeStyle = '#004488'; ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#0066aa'; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.roundRect(-22, -26, 5, 22, 2); ctx.fill(); ctx.stroke();
+
+    // === FRONT ARM ===
+    ctx.beginPath(); ctx.roundRect(13, -28, 5, 24, 2); ctx.fill(); ctx.stroke();
+
+    // === MAIN CHASSIS (angled wedge) ===
+    ctx.fillStyle = '#13132a'; ctx.strokeStyle = '#005599'; ctx.lineWidth = 2;
+    ctx.shadowColor = '#0077bb'; ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(-30, -5);
+    ctx.lineTo(16,  -7);
+    ctx.lineTo(22,  -1);
+    ctx.lineTo(22,   6);
+    ctx.lineTo(16,   8);
+    ctx.lineTo(-30,  6);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // === BATTERY HUMP ===
+    ctx.fillStyle = '#1a1a35'; ctx.strokeStyle = '#003366'; ctx.lineWidth = 1;
+    ctx.shadowBlur = 4;
+    ctx.beginPath(); ctx.roundRect(-16, -11, 22, 5, 2); ctx.fill(); ctx.stroke();
+
+    // === CANOPY detail line ===
+    ctx.strokeStyle = '#0055aa'; ctx.lineWidth = 1; ctx.shadowBlur = 3;
+    ctx.beginPath(); ctx.moveTo(-14, -5); ctx.lineTo(14, -6); ctx.stroke();
+
+    // === CAMERA HOUSING ===
+    ctx.save();
+    ctx.translate(27, 0);
+    ctx.rotate(-0.18);
+    ctx.fillStyle = '#0c0c1f'; ctx.strokeStyle = '#0099cc'; ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#00ccff'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.roundRect(-2, -11, 14, 15, 3); ctx.fill(); ctx.stroke();
+    // lens barrel
+    ctx.fillStyle = '#07071a'; ctx.strokeStyle = '#00aadd'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(5, 2, 5.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    // inner lens
+    ctx.fillStyle = '#030310'; ctx.strokeStyle = '#0077aa'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(5, 2, 3.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    // lens glint
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(150,220,255,0.55)';
+    ctx.beginPath(); ctx.arc(3.2, 0.2, 1.4, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // === MOTOR HOUSINGS ===
+    ctx.shadowColor = '#0088cc'; ctx.shadowBlur = 8;
+    ctx.fillStyle = '#111128'; ctx.strokeStyle = '#0077cc'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(-19, -27, 5.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(15,  -29, 5.5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    // motor detail rings
+    ctx.strokeStyle = '#005599'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(-19, -27, 3, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(15,  -29, 3, 0, Math.PI*2); ctx.stroke();
+
+    // === PROPELLERS ===
+    const drawProp = (px, py, angle, dir) => {
+      ctx.save(); ctx.translate(px, py); ctx.rotate(angle * dir);
+      ctx.shadowColor = '#00eeff'; ctx.shadowBlur = 7;
+      for (let b = 0; b < 2; b++) {
+        ctx.save(); ctx.rotate(b * Math.PI);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(5, -2, 14, -3, 17, -1);
+        ctx.bezierCurveTo(14,  0,  5,  0,  0,  0);
+        ctx.fillStyle   = 'rgba(0,200,255,0.22)';
+        ctx.strokeStyle = 'rgba(0,210,255,0.8)';
+        ctx.lineWidth   = 1.5;
+        ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.fillStyle = '#00bbff'; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    };
+    drawProp(-19, -27, this.rotor,  1);
+    drawProp( 15, -29, this.rotor, -1);
+
+    // === LED LIGHTS ===
+    ctx.shadowColor = '#ff3300'; ctx.shadowBlur = 14;
+    ctx.fillStyle = '#ff3300';
+    ctx.beginPath(); ctx.arc(-29, 2, 2.8, 0, Math.PI*2); ctx.fill();
+
+    ctx.shadowColor = '#00ff77'; ctx.shadowBlur = 14;
+    ctx.fillStyle = '#00ff77';
+    ctx.beginPath(); ctx.arc(21, 4, 2.8, 0, Math.PI*2); ctx.fill();
+
+    // === ANTENNA ===
+    ctx.shadowBlur = 0; ctx.strokeStyle = '#2a2a50'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-25, -6); ctx.lineTo(-33, -23); ctx.stroke();
+    ctx.fillStyle = '#4455aa';
+    ctx.beginPath(); ctx.arc(-33, -23, 2.2, 0, Math.PI*2); ctx.fill();
+
+    ctx.restore();
+  }
+};
+
+// ── PARTICLES ────────────────────────────────────────────
+let particles = [];
+function addParticle(x,y,vx,vy,color,life) {
+  particles.push({x,y,vx,vy,color,life,maxLife:life,size:Math.random()*3+2});
+}
+function updateDrawParticles() {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life -= 0.04;
+    const a = Math.max(0, p.life/p.maxLife);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size*a, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  });
+}
+
+// ── BUILDINGS ────────────────────────────────────────────
+class Building {
+  constructor() {
+    this.x = W + 60;
+    const gap = Math.max(150, 230 - score * 0.4);
+    const gapY = 60 + Math.random() * (H - gap - 120);
+    this.topH = gapY;
+    this.botY = gapY + gap;
+    this.botH = H - this.botY;
+    this.w = 68;
+    this.scored = false;
+    this.hue = 210 + Math.random()*50;
+  }
+  update() { this.x -= speed; }
+  draw() {
+    const col  = `hsl(${this.hue},50%,18%)`;
+    const edge = `hsl(${this.hue},80%,55%)`;
+    ctx.shadowColor = edge; ctx.shadowBlur = 8;
+
+    // top
+    ctx.fillStyle = col;
+    ctx.fillRect(this.x, 0, this.w, this.topH);
+    ctx.fillStyle = edge;
+    ctx.fillRect(this.x, this.topH-4, this.w, 4);
+
+    // bottom
+    ctx.fillStyle = col;
+    ctx.fillRect(this.x, this.botY, this.w, this.botH);
+    ctx.fillStyle = edge;
+    ctx.fillRect(this.x, this.botY, this.w, 4);
+
+    // windows
+    ctx.shadowBlur = 3;
+    [[0, this.topH-10],[this.botY+6, H-4]].forEach(([y0,y1]) => {
+      for (let wy=y0+8; wy<y1; wy+=18)
+        for (let wx=this.x+7; wx<this.x+this.w-7; wx+=12)
+          if (Math.sin(wx*13+wy*7)>0.25) {
+            ctx.fillStyle = `rgba(255,210,90,${0.35+Math.random()*0.2})`;
+            ctx.fillRect(wx,wy,5,7);
+          }
+    });
+    ctx.shadowBlur = 0;
+  }
+  hits(d) {
+    const hw=24, hh=10;
+    return d.x+hw>this.x && d.x-hw<this.x+this.w &&
+           (d.y-hh<this.topH || d.y+hh>this.botY);
+  }
+}
+
+// ── BATTERIES ────────────────────────────────────────────
+class Battery {
+  constructor() {
+    this.x = W + 40;
+    this.y = 70 + Math.random()*(H-140);
+    this.taken = false; this.pulse = Math.random()*Math.PI*2;
+  }
+  update() { this.x -= speed; this.pulse += 0.1; }
+  draw() {
+    const glow = Math.sin(this.pulse)*5+12;
+    ctx.shadowColor='#00ff88'; ctx.shadowBlur=glow;
+    ctx.fillStyle='#002211'; ctx.strokeStyle='#00ff88'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(this.x-11,this.y-8,22,16,3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#00ff88';
+    ctx.beginPath(); ctx.roundRect(this.x+11,this.y-4,4,8,2); ctx.fill();
+    ctx.fillRect(this.x-9,this.y-5,15,10);
+    ctx.fillStyle='#002211';
+    ctx.fillRect(this.x-9,this.y-5,4,10);
+    ctx.shadowBlur=0;
+  }
+  hits(d) { return Math.hypot(d.x-this.x,d.y-this.y)<28; }
+}
+
+// ── BACKGROUND ───────────────────────────────────────────
+const stars = Array.from({length:160},()=>({
+  x:Math.random()*W, y:Math.random()*H,
+  r:Math.random()*1.4+0.4, sp:Math.random()*0.25+0.05,
+  t:Math.random()*Math.PI*2
+}));
+const bgBldgs = Array.from({length:9},()=>makeBgBldg(Math.random()*W));
+function makeBgBldg(x) {
+  return {x, w:35+Math.random()*60, h:60+Math.random()*160,
+          sp:0.4+Math.random()*0.5};
+}
+function drawBackground() {
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#03030e'); g.addColorStop(1,'#080818');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  // stars
+  stars.forEach(s => {
+    const tw = Math.sin(frame*0.04+s.t)*0.3+0.7;
+    ctx.fillStyle=`rgba(255,255,255,${tw*0.7})`;
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+    if (state===S.PLAY){ s.x-=s.sp; if(s.x<0) s.x=W; }
+  });
+
+  // bg city silhouette
+  bgBldgs.forEach(b => {
+    ctx.fillStyle='#0c0c20';
+    ctx.fillRect(b.x, H-b.h, b.w, b.h);
+    for(let wy=H-b.h+8;wy<H-6;wy+=14)
+      for(let wx=b.x+5;wx<b.x+b.w-5;wx+=9)
+        if(Math.sin(wx*17+wy*11)>0.3){
+          ctx.fillStyle='rgba(255,190,70,0.18)';
+          ctx.fillRect(wx,wy,4,5);
+        }
+    if(state===S.PLAY){ b.x-=b.sp; if(b.x+b.w<0){ Object.assign(b,makeBgBldg(W+b.w)); } }
+  });
+}
+
+// ── HUD ──────────────────────────────────────────────────
+function drawHUD() {
+  // score
+  ctx.shadowColor='#00ffff'; ctx.shadowBlur=12;
+  ctx.fillStyle='#ffffff'; ctx.font='bold 30px Courier New';
+  ctx.textAlign='left';
+  ctx.fillText(Math.floor(score), 22, 46);
+  ctx.shadowBlur=0; ctx.fillStyle='#5566aa';
+  ctx.font='13px Courier New'; ctx.fillText('SCORE',22,64);
+
+  // battery bar
+  const bx=W-162,by=18,bw=142,bh=22;
+  const pct = drone.battery/100;
+  const bc = pct>0.5 ? '#00ff88' : pct>0.25 ? '#ffcc00' : '#ff4400';
+  ctx.strokeStyle=bc; ctx.shadowColor=bc; ctx.shadowBlur=6;
+  ctx.lineWidth=2; ctx.strokeRect(bx,by,bw,bh);
+  ctx.fillStyle=bc; ctx.fillRect(bx+2,by+2,(bw-4)*pct,bh-4);
+  ctx.fillRect(bx+bw,by+6,5,bh-12);
+  ctx.shadowBlur=0; ctx.fillStyle='#5566aa';
+  ctx.font='12px Courier New'; ctx.fillText('BATTERY',bx,by+bh+15);
+
+  // speed indicator (small)
+  ctx.fillStyle='#334466'; ctx.font='12px Courier New';
+  ctx.fillText(`SPD ${speed.toFixed(1)}x`, 22, H-18);
+}
+
+function drawScreen(title, sub1, sub2, col) {
+  ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';
+  ctx.shadowColor=col; ctx.shadowBlur=35;
+  ctx.fillStyle=col; ctx.font='bold 68px Courier New';
+  ctx.fillText(title, W/2, H/2-50);
+  ctx.shadowBlur=0; ctx.fillStyle='#aabbdd';
+  ctx.font='20px Courier New'; ctx.fillText(sub1, W/2, H/2+20);
+  ctx.fillStyle='#556688'; ctx.font='15px Courier New';
+  ctx.fillText(sub2, W/2, H/2+56);
+  ctx.textAlign='left';
+}
+
+// ── GAME OBJECTS ─────────────────────────────────────────
+let buildings=[], batteries=[], bTimer=0, batTimer=0;
+
+function startGame() {
+  if (score > hiScore) hiScore = score;
+  score=0; frame=0; speed=3; shake=0; held=false;
+  buildings=[]; batteries=[]; particles=[];
+  bTimer=0; batTimer=0;
+  drone.reset();
+  state = S.PLAY;
+}
+
+function handlePress() {
+  if (state===S.START) startGame();
+  else if (state===S.PLAY) held = true;
+  else if (state===S.OVER) startGame();
+}
+function handleRelease() { held = false; }
+
+document.addEventListener('keydown',  e => { if(e.code==='Space'){e.preventDefault(); handlePress();} });
+document.addEventListener('keyup',    e => { if(e.code==='Space'){e.preventDefault(); handleRelease();} });
+canvas.addEventListener('mousedown',  e => handlePress());
+canvas.addEventListener('mouseup',    e => handleRelease());
+canvas.addEventListener('mouseleave', e => handleRelease());
+canvas.addEventListener('touchstart', e => { e.preventDefault(); handlePress(); },   {passive:false});
+canvas.addEventListener('touchend',   e => { e.preventDefault(); handleRelease(); }, {passive:false});
+
+// ── LOOP ─────────────────────────────────────────────────
+function loop() {
+  frame++;
+
+  // screen shake
+  let sx=0,sy=0;
+  if (shake>0){ sx=(Math.random()-.5)*shake; sy=(Math.random()-.5)*shake; shake*=0.8; if(shake<0.5)shake=0; }
+  ctx.save(); ctx.translate(sx,sy);
+
+  drawBackground();
+
+  if (state===S.PLAY) {
+    score += 0.055 * (speed/3);
+    speed  = 3 + score * 0.0028;
+
+    // spawn buildings
+    bTimer++;
+    const bInterval = Math.max(55, 105 - score*0.12);
+    if (bTimer>bInterval){ buildings.push(new Building()); bTimer=0; }
+
+    // spawn batteries
+    batTimer++;
+    if (batTimer>180){ batteries.push(new Battery()); batTimer=0; }
+
+    // update buildings
+    buildings = buildings.filter(b=>b.x>-80);
+    buildings.forEach(b=>{
+      b.update();
+      if (!b.scored && b.x+b.w < drone.x){ b.scored=true; score+=10; }
+      if (b.hits(drone)) drone.die();
+    });
+
+    // update batteries
+    batteries = batteries.filter(b=>b.x>-50 && !b.taken);
+    batteries.forEach(b=>{
+      b.update();
+      if (b.hits(drone)){
+        b.taken=true;
+        drone.battery = Math.min(100, drone.battery+35);
+        for(let i=0;i<16;i++) addParticle(b.x,b.y,(Math.random()-.5)*5,(Math.random()-.5)*5,'#00ff88',1.1);
+      }
+    });
+
+    drone.update();
+
+  }
+
+  buildings.forEach(b=>b.draw());
+  batteries.forEach(b=>b.draw());
+  updateDrawParticles();
+  drone.draw();
+
+  if (state===S.PLAY||state===S.DYING) drawHUD();
+
+  if (state===S.START)
+    drawScreen('DRONE\nRUNNER','SPACE / CLICK / TAP to fly','Collect batteries  ·  Dodge buildings','#00ffff');
+
+  if (state===S.OVER) {
+    ctx.fillStyle='rgba(0,0,0,0.68)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.shadowColor='#ff5500'; ctx.shadowBlur=28;
+    ctx.fillStyle='#ff5500'; ctx.font='bold 58px Courier New';
+    ctx.fillText('CRASHED', W/2, H/2-55);
+    ctx.shadowColor='#ffffff'; ctx.shadowBlur=10;
+    ctx.fillStyle='#ffffff'; ctx.font='bold 34px Courier New';
+    ctx.fillText(`SCORE  ${Math.floor(score)}`, W/2, H/2+5);
+    if (Math.floor(score)>=Math.floor(hiScore)) {
+      ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.font='21px Courier New';
+      ctx.fillText('✦  NEW HIGH SCORE  ✦', W/2, H/2+44);
+    } else {
+      ctx.shadowBlur=0; ctx.fillStyle='#5566aa'; ctx.font='18px Courier New';
+      ctx.fillText(`BEST  ${Math.floor(hiScore)}`, W/2, H/2+44);
+    }
+    ctx.shadowBlur=0; ctx.fillStyle='#445577'; ctx.font='15px Courier New';
+    ctx.fillText('SPACE / CLICK / TAP to restart', W/2, H/2+90);
+    ctx.textAlign='left';
+  }
+
+  ctx.restore();
+  requestAnimationFrame(loop);
+}
+
+// draw title correctly (two lines)
+const _drawScreen = drawScreen;
+drawScreen = function(title, sub1, sub2, col) {
+  ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';
+  ctx.shadowColor=col; ctx.shadowBlur=35;
+  ctx.fillStyle=col; ctx.font='bold 68px Courier New';
+  ctx.fillText('DRONE', W/2, H/2-70);
+  ctx.fillStyle='#ffffff';
+  ctx.fillText('RUNNER', W/2, H/2);
+  ctx.shadowBlur=0; ctx.fillStyle='#aabbdd';
+  ctx.font='20px Courier New'; ctx.fillText(sub1, W/2, H/2+55);
+  ctx.fillStyle='#556688'; ctx.font='15px Courier New';
+  ctx.fillText(sub2, W/2, H/2+88);
+  ctx.textAlign='left';
+};
+
+loop();
+</script>
+</body>
+</html>
