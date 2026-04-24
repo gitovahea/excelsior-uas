@@ -492,9 +492,9 @@ function drawStartScreen(){
   ctx.font=`${Math.max(10,Math.round(13*SC))}px Courier New`;
   ctx.fillText('Collect batteries  ·  Dodge buildings',W/2,H/2+tf*1.2);
   if(worldHi>0){
-    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=8;
-    ctx.font=`${Math.max(10,Math.round(13*SC))}px Courier New`;
-    ctx.fillText(`✦  WORLD  ${Math.floor(worldHi)}  ✦`,W/2,H/2+tf*1.55);
+    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=14;
+    ctx.font=`bold ${Math.max(14,Math.round(18*SC))}px Courier New`;
+    ctx.fillText(`✦  WORLD  ${Math.floor(worldHi)}  ✦`,W/2,H/2+tf*1.58);
     ctx.shadowBlur=0;
   }
   ctx.textAlign='left';
@@ -511,21 +511,25 @@ function drawGameOverScreen(){
   ctx.fillStyle='#ffffff'; ctx.font=`bold ${Math.round(tf*0.62)}px Courier New`;
   ctx.fillText(`SCORE  ${Math.floor(score)}`,W/2,H/2+8);
   if(Math.floor(score)>Math.floor(worldHi)&&worldHi>0){
-    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00';
-    ctx.font=`${Math.round(tf*0.38)}px Courier New`;
-    ctx.fillText('✦  WORLD RECORD  ✦',W/2,H/2+tf*0.72);
+    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=20;
+    ctx.font=`bold ${Math.round(tf*0.42)}px Courier New`;
+    ctx.fillText('✦  WORLD RECORD  ✦',W/2,H/2+tf*0.75);
   } else if(Math.floor(score)>=Math.floor(hiScore)&&hiScore>0){
-    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00';
-    ctx.font=`${Math.round(tf*0.38)}px Courier New`;
-    ctx.fillText('✦  NEW HIGH SCORE  ✦',W/2,H/2+tf*0.72);
+    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=20;
+    ctx.font=`bold ${Math.round(tf*0.42)}px Courier New`;
+    ctx.fillText('✦  NEW HIGH SCORE  ✦',W/2,H/2+tf*0.75);
   } else {
-    ctx.shadowBlur=0; ctx.fillStyle='#5566aa';
-    ctx.font=`${Math.round(tf*0.34)}px Courier New`;
-    ctx.fillText(`BEST  ${Math.floor(hiScore)}  ·  WORLD  ${Math.floor(worldHi)}`,W/2,H/2+tf*0.72);
+    // show BEST and WORLD on separate lines, bold and bright
+    ctx.shadowBlur=12;
+    ctx.fillStyle='#00ffff'; ctx.shadowColor='#00ffff';
+    ctx.font=`bold ${Math.round(tf*0.38)}px Courier New`;
+    ctx.fillText(`BEST  ${Math.floor(hiScore)}`,W/2,H/2+tf*0.72);
+    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00';
+    ctx.fillText(`WORLD  ${Math.floor(worldHi)}`,W/2,H/2+tf*1.12);
   }
   ctx.shadowBlur=0; ctx.fillStyle='#445577';
   ctx.font=`${Math.max(10,Math.round(tf*0.28))}px Courier New`;
-  ctx.fillText('TAP to restart',W/2,H/2+tf*1.25);
+  ctx.fillText('TAP to restart',W/2,H/2+tf*1.6);
   ctx.textAlign='left';
 }
 
