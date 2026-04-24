@@ -38,7 +38,7 @@ let held=false;
 // ── AUDIO ────────────────────────────────────────────────
 let audioCtx=null;
 let droneOsc=null, droneLFO=null, droneGainNode=null;
-let bgmMaster=null, bgmStarted=false, bgmStopped=false;
+let bgmMaster=null, bgmStarted=false, bgmStopped=false, bgmGen=0;
 
 function initAudio() {
   if (!audioCtx) {
@@ -47,12 +47,9 @@ function initAudio() {
     bgmMaster.gain.value = 0.5;
     bgmMaster.connect(audioCtx.destination);
   }
-  // Safari requires explicit resume after user gesture
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume().then(() => scheduleBGM());
-  } else {
-    scheduleBGM();
-  }
+  // Safari: resume must be called synchronously inside the gesture handler
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  scheduleBGM();
 }
 
 function startDroneSound() {
@@ -91,11 +88,12 @@ function stopBGM() {
 
 function restartBGM() {
   if (!audioCtx || !bgmMaster) return;
+  bgmGen++;           // invalidates all running loops
   bgmStopped=false; bgmStarted=false;
   bgmMaster.gain.cancelScheduledValues(audioCtx.currentTime);
   bgmMaster.gain.setValueAtTime(0, audioCtx.currentTime);
   bgmMaster.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime+0.3);
-  setTimeout(()=>scheduleBGM(), 100);
+  setTimeout(()=>scheduleBGM(), 120);
 }
 
 function playCrashSound() {
@@ -166,8 +164,9 @@ function scheduleBGM() {
   const arp=[440,523.25,659.25,783.99,659.25,523.25,440,523.25,
              880,783.99,659.25,523.25,659.25,783.99,523.25,440];
   const bassRoots=[110,82.41,87.31,98.00];
+  const myGen = bgmGen;
   function playLoop() {
-    if (bgmStopped||!audioCtx||!bgmMaster) return;
+    if (bgmStopped||!audioCtx||!bgmMaster||bgmGen!==myGen) return;
     const now=audioCtx.currentTime, loopLen=bar*4;
     for(let s=0;s<32;s++){
       const t=now+s*sixteenth, freq=arp[s%arp.length];
@@ -528,7 +527,12 @@ canvas.addEventListener('touchstart', e=>{ e.preventDefault(); handlePress(); },
 canvas.addEventListener('touchend',   e=>{ e.preventDefault(); handleRelease(); },{passive:false});
 
 // ── LOOP ─────────────────────────────────────────────────
-function loop(){
+const FRAME_MS = 1000 / 60;
+let lastFrameTime = 0;
+
+function loop(ts){
+  if (ts - lastFrameTime < FRAME_MS - 1) { requestAnimationFrame(loop); return; }
+  lastFrameTime = ts;
   frame++;
   let sx=0,sy=0;
   if(shake>0){ sx=(Math.random()-.5)*shake; sy=(Math.random()-.5)*shake; shake*=0.8; if(shake<0.5)shake=0; }
