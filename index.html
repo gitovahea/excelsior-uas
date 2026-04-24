@@ -346,7 +346,7 @@ function updateDrawParticles(){
 class Building {
   constructor(){
     this.x=W+60;
-    const gap=Math.max(H*0.35, H*0.58 - score*(H/2000));
+    const gap=Math.max(H*0.40, H*0.58 - score*(H/2000));
     const minGY=H*0.1, maxGY=H*0.9-gap;
     let gapY;
     if(lastGapY===null){
@@ -381,9 +381,10 @@ class Building {
     ctx.shadowBlur=0;
   }
   hits(d){
-    const hw=Math.round(22*SC), hh=Math.round(8*SC);
+    // hitbox matches the drone's core chassis, not arms/camera/props
+    const hw=Math.round(16*SC), hh=Math.round(6*SC);
     return d.x+hw>this.x && d.x-hw<this.x+this.w &&
-           (d.y-hh<this.topH-3 || d.y+hh>this.botY+3);
+           (d.y-hh<this.topH || d.y+hh>this.botY);
   }
 }
 
@@ -554,6 +555,7 @@ function loop(ts){
   if(state===S.PLAY){
     score+=0.055*(speed/3);
     speed=3+score*0.002;
+    drone.update(); // update drone first so collision checks current-frame position
     bTimer++;
     const bInterval=Math.max(68,120-score*0.09);
     if(bTimer>bInterval){ buildings.push(new Building()); bTimer=0; }
@@ -574,7 +576,6 @@ function loop(ts){
         for(let i=0;i<16;i++) addParticle(b.x,b.y,(Math.random()-.5)*5,(Math.random()-.5)*5,'#00ff88',1.1);
       }
     });
-    drone.update();
   }
 
   buildings.forEach(b=>b.draw());
