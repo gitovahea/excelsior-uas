@@ -223,8 +223,8 @@ function scheduleBGM() {
 
 // ── DRONE ────────────────────────────────────────────────
 const drone = {
-  x:0, y:0, vy:0, battery:100, alive:true, rotor:0,
-  reset() { this.x=W*0.18; this.y=H/2; this.vy=0; this.battery=100; this.alive=true; },
+  x:0, y:0, vy:0, battery:100, alive:true, rotor:0, rotorSpeed:0.32, powerLoss:false,
+  reset() { this.x=W*0.18; this.y=H/2; this.vy=0; this.battery=100; this.alive=true; this.rotorSpeed=0.32; this.powerLoss=false; },
   thrust() {
     [this.x-19*SC, this.x+15*SC].forEach(px=>{
       for(let i=0;i<2;i++) addParticle(px+(Math.random()-0.5)*8*SC, this.y-10*SC,
@@ -233,12 +233,19 @@ const drone = {
   },
   update() {
     if (!this.alive) return;
-    if (held){ this.vy-=1.1; if(this.vy<-7) this.vy=-7; if(frame%2===0) this.thrust(); }
+    if (!this.powerLoss && held){ this.vy-=1.1; if(this.vy<-7) this.vy=-7; if(frame%2===0) this.thrust(); }
     this.vy += 0.46;
+    if (this.powerLoss) this.vy = Math.min(this.vy, 14); // cap fall speed
     this.y  += this.vy;
-    this.rotor += 0.32;
-    this.battery -= 0.042*(speed/3);
-    if (this.battery<=0){ this.battery=0; this.die(); }
+    this.rotorSpeed = this.powerLoss ? Math.max(0, this.rotorSpeed-0.012) : 0.32;
+    this.rotor += this.rotorSpeed;
+    if (!this.powerLoss){
+      this.battery -= 0.042*(speed/3);
+      if (this.battery<=0){
+        this.battery=0; this.powerLoss=true;
+        stopDroneSound();
+      }
+    }
     if (this.y<8)  { this.y=8;  this.vy=0; }
     if (this.y>H-8) this.die();
   },
