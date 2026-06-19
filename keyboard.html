@@ -229,9 +229,9 @@ body.en-mode .key.f-key .main-lbl{color:#4a3a08;}
 </div>
 
 <script>
-let text='', mode='ko', shifted=false;
+let mode='ko', shifted=false;
 
-/* Korean maps */
+/* ── Key maps ── */
 const KRMAP={q:'ㅂ',w:'ㅈ',e:'ㄷ',r:'ㄱ',t:'ㅅ',y:'ㅛ',u:'ㅕ',i:'ㅑ',o:'ㅐ',p:'ㅔ',a:'ㅁ',s:'ㄴ',d:'ㅇ',f:'ㆄ',g:'ㄹ',h:'ㅎ',j:'ㅗ',k:'ㅓ',l:'ㅏ',';':'ㅣ',z:'ㅋ',x:'ㅌ',c:'ㅊ',v:'ㅸ',b:'ㅍ',n:'ㅠ',m:'ㅜ',',':'ㅡ'};
 const KRSMAP={q:'ㅃ',w:'ㅉ',e:'ㄸ',r:'ㄲ',t:'ㅆ',o:'ㅒ',p:'ㅖ'};
 
@@ -245,22 +245,176 @@ function getChar(k){
   }
 }
 
+/* ══════════════════════════════════════════════
+   한글 조합 엔진 (Hangul Composition Engine)
+   ══════════════════════════════════════════════ */
+
+// 초성 19개
+const CHO  = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+// 중성 21개
+const JUNG = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+// 종성 28개 (0=없음)
+const JONG = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+const CHO_IDX  = Object.fromEntries(CHO.map((c,i)=>[c,i]));
+const JUNG_IDX = Object.fromEntries(JUNG.map((c,i)=>[c,i]));
+const JONG_IDX = Object.fromEntries(JONG.map((c,i)=>[c,i]).filter(([c])=>c));
+
+// 겹받침: 두 자음 → 종성 인덱스
+const COMPOUND_JONG = {'ㄱㅅ':3,'ㄴㅈ':5,'ㄴㅎ':6,'ㄹㄱ':9,'ㄹㅁ':10,'ㄹㅂ':11,'ㄹㅅ':12,'ㄹㅌ':13,'ㄹㅍ':14,'ㄹㅎ':15,'ㅂㅅ':18};
+// 겹받침 분리: 종성 인덱스 → [남는 것, 다음 초성]
+const SPLIT_JONG = {3:['ㄱ','ㅅ'],5:['ㄴ','ㅈ'],6:['ㄴ','ㅎ'],9:['ㄹ','ㄱ'],10:['ㄹ','ㅁ'],11:['ㄹ','ㅂ'],12:['ㄹ','ㅅ'],13:['ㄹ','ㅌ'],14:['ㄹ','ㅍ'],15:['ㄹ','ㅎ'],18:['ㅂ','ㅅ']};
+// 합성 모음: ㅗ+ㅏ=ㅘ 등
+const COMPOUND_JUNG = {'ㅗㅏ':'ㅘ','ㅗㅐ':'ㅙ','ㅗㅣ':'ㅚ','ㅜㅓ':'ㅝ','ㅜㅔ':'ㅞ','ㅜㅣ':'ㅟ','ㅡㅣ':'ㅢ'};
+// 합성 모음 분리 (backspace용)
+const SPLIT_JUNG = {'ㅘ':['ㅗ','ㅏ'],'ㅙ':['ㅗ','ㅐ'],'ㅚ':['ㅗ','ㅣ'],'ㅝ':['ㅜ','ㅓ'],'ㅞ':['ㅜ','ㅔ'],'ㅟ':['ㅜ','ㅣ'],'ㅢ':['ㅡ','ㅣ']};
+
+function isVowel(c){ return JUNG_IDX[c]!==undefined; }
+function isCho(c)  { return CHO_IDX[c]!==undefined; }
+
+// 유니코드 음절 조합
+function makeBlock(cho,jung,jongIdx=0){
+  return String.fromCharCode(0xAC00+(CHO_IDX[cho]*21+JUNG_IDX[jung])*28+jongIdx);
+}
+
+// 현재 조합 중인 음절 상태
+// { cho, jung, jong1, jong2, jongIdx }
+// jong1 = 첫 받침자음, jong2 = 겹받침 두번째, jongIdx = JONG 인덱스
+let comp = null;
+let finalText = ''; // 확정된 텍스트
+
+function renderComp(){
+  if(!comp) return '';
+  if(!comp.jung) return comp.cho; // 초성만
+  return makeBlock(comp.cho, comp.jung, comp.jongIdx||0);
+}
+
+function getDisplayText(){ return finalText + renderComp(); }
+
+function finalizeComp(){
+  if(comp){ finalText+=renderComp(); comp=null; }
+}
+
+function inputJamo(ch){
+  // ㆄ·ㅸ 는 표준 유니코드 음절 블록에 없으므로 단독 삽입
+  if(ch==='ㆄ'||ch==='ㅸ'){ finalizeComp(); finalText+=ch; render(); return; }
+  if(isVowel(ch)) inputVowel(ch);
+  else if(isCho(ch)) inputCons(ch);
+  else { finalizeComp(); finalText+=ch; }
+  render();
+}
+
+function inputVowel(v){
+  if(!comp){
+    // 모음 단독 → ㅇ+모음
+    comp={cho:'ㅇ',jung:v,jong1:null,jong2:null,jongIdx:0};
+    return;
+  }
+  if(!comp.jung){
+    // 초성 + 모음 → 음절 시작
+    comp.jung=v; comp.jongIdx=0;
+    return;
+  }
+  if(!comp.jong1){
+    // 열린 음절 + 모음: 합성모음 시도
+    const cj=COMPOUND_JUNG[comp.jung+v];
+    if(cj){ comp.jung=cj; return; }
+    // 안되면 확정 후 ㅇ+모음
+    finalizeComp();
+    comp={cho:'ㅇ',jung:v,jong1:null,jong2:null,jongIdx:0};
+    return;
+  }
+  // 받침 있는 음절 + 모음: 받침이 다음 초성으로 이동
+  let movedCho, staysJongIdx=0;
+  if(comp.jong2){
+    // 겹받침 분리
+    const sp=SPLIT_JONG[comp.jongIdx];
+    staysJongIdx=JONG_IDX[sp[0]];
+    movedCho=sp[1];
+  } else {
+    movedCho=comp.jong1; // 단순 받침 전체 이동
+    staysJongIdx=0;
+  }
+  finalText+=makeBlock(comp.cho,comp.jung,staysJongIdx||0);
+  comp={cho:movedCho,jung:v,jong1:null,jong2:null,jongIdx:0};
+}
+
+function inputCons(c){
+  if(!comp){
+    comp={cho:c,jung:null,jong1:null,jong2:null,jongIdx:0};
+    return;
+  }
+  if(!comp.jung){
+    // 초성만 있을 때 자음 → 확정 후 새 초성
+    finalizeComp();
+    comp={cho:c,jung:null,jong1:null,jong2:null,jongIdx:0};
+    return;
+  }
+  if(!comp.jong1){
+    // 열린 음절 + 자음 → 받침 시도
+    if(JONG_IDX[c]!==undefined){
+      comp.jong1=c; comp.jongIdx=JONG_IDX[c];
+    } else {
+      // 쌍자음(ㄸ,ㅃ,ㅉ)은 받침 불가 → 확정 후 새 초성
+      finalizeComp(); comp={cho:c,jung:null,jong1:null,jong2:null,jongIdx:0};
+    }
+    return;
+  }
+  if(!comp.jong2){
+    // 받침 + 자음: 겹받침 시도
+    const key=comp.jong1+c;
+    if(COMPOUND_JONG[key]!==undefined){
+      comp.jong2=c; comp.jongIdx=COMPOUND_JONG[key];
+      return;
+    }
+  }
+  // 겹받침 불가 → 현재 확정, 새 초성
+  finalizeComp();
+  comp={cho:c,jung:null,jong1:null,jong2:null,jongIdx:0};
+}
+
+function deleteChar(){
+  if(comp){
+    if(comp.jong2){
+      comp.jong2=null; comp.jongIdx=JONG_IDX[comp.jong1];
+    } else if(comp.jong1){
+      comp.jong1=null; comp.jongIdx=0;
+    } else if(comp.jung){
+      // 합성 모음이면 앞 부분으로 되돌리기
+      const sp=SPLIT_JUNG[comp.jung];
+      if(sp){ comp.jung=sp[0]; } else { comp.jung=null; }
+    } else {
+      comp=null;
+    }
+  } else {
+    const chars=[...finalText]; chars.pop(); finalText=chars.join('');
+  }
+  render();
+}
+
+function ins(ch){
+  if(mode==='ko') inputJamo(ch);
+  else { finalizeComp(); finalText+=ch; render(); }
+}
+
+function clearAll(){ finalText=''; comp=null; render(); }
+
 function render(){
   const el=document.getElementById('output');
-  el.textContent=text||'';
-  if(!text) el.innerHTML='&#8203;';
+  const t=getDisplayText();
+  el.textContent=t||'';
+  if(!t) el.innerHTML='&#8203;';
 }
-function ins(ch){text+=ch;render();}
-function deleteChar(){text=[...text].slice(0,-1).join('');render();}
-function clearAll(){text='';render();}
+
 function copyText(){
-  navigator.clipboard.writeText(text).then(()=>{
+  navigator.clipboard.writeText(getDisplayText()).then(()=>{
     const b=document.getElementById('copyBtn');
     b.textContent='✓ COPIED';b.classList.add('copied');
     setTimeout(()=>{b.textContent='⎘ COPY';b.classList.remove('copied');},1600);
   });
 }
 
+/* ── Shift ── */
 function setShift(on){
   shifted=on;
   if(on) document.body.classList.add('shift-on');
@@ -268,7 +422,9 @@ function setShift(on){
 }
 function toggleShift(){ setShift(!shifted); }
 
+/* ── Mode ── */
 function toggleMode(){
+  finalizeComp();
   mode=mode==='ko'?'en':'ko';
   setShift(false);
   const badge=document.getElementById('modeBadge');
@@ -281,7 +437,7 @@ function toggleMode(){
   }
 }
 
-/* Physical keyboard */
+/* ── Physical keyboard ── */
 document.addEventListener('keydown',e=>{
   if(e.key==='Shift'){setShift(true);return;}
   if(e.ctrlKey||e.metaKey||e.altKey) return;
@@ -289,8 +445,8 @@ document.addEventListener('keydown',e=>{
   if(raw==='`'){toggleMode();e.preventDefault();return;}
   const k=raw===';'?';':raw===','?',':raw.toLowerCase();
   if(k==='backspace'){deleteChar();e.preventDefault();}
-  else if(k==='enter'){ins('\n');e.preventDefault();}
-  else if(k===' '){ins(' ');e.preventDefault();}
+  else if(k==='enter'){finalizeComp();finalText+='\n';render();e.preventDefault();}
+  else if(k===' '){finalizeComp();finalText+=' ';render();e.preventDefault();}
   else{
     const ch=getChar(k);
     if(ch){ins(ch);e.preventDefault();flash(k);if(shifted)setShift(false);}
@@ -307,7 +463,7 @@ function flash(k){
   setTimeout(()=>el.classList.remove('pressed'),130);
 }
 
-/* Click */
+/* ── Click ── */
 document.addEventListener('click',e=>{
   const key=e.target.closest('.key');
   if(!key)return;
@@ -315,8 +471,8 @@ document.addEventListener('click',e=>{
   if(action==='toggle'){toggleMode();return;}
   if(action==='shift'){toggleShift();return;}
   if(action==='backspace'){deleteChar();return;}
-  if(action==='enter'){ins('\n');return;}
-  if(action==='space'){ins(' ');return;}
+  if(action==='enter'){finalizeComp();finalText+='\n';render();return;}
+  if(action==='space'){finalizeComp();finalText+=' ';render();return;}
   if(k){
     const ch=getChar(k);
     if(ch){ins(ch);flash(k);if(shifted)setShift(false);}
@@ -336,11 +492,11 @@ const SPECIAL=[['ㆄ','F 자음','specf','f-sound'],['ㅸ','V 자음','spec','v-
 
 function buildRef(){
   const cg=document.getElementById('jamo-consonants');
-  CONSONANTS.forEach(([ch,name])=>{const d=document.createElement('div');d.className='jamo-card';d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span>`;d.addEventListener('click',()=>ins(ch));cg.appendChild(d);});
+  CONSONANTS.forEach(([ch,name])=>{const d=document.createElement('div');d.className='jamo-card';d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span>`;d.addEventListener('click',()=>{if(mode==='ko')inputJamo(ch);else{finalizeComp();finalText+=ch;}render();});cg.appendChild(d);});
   const vg=document.getElementById('jamo-vowels');
-  VOWELS.forEach(([ch,name])=>{const d=document.createElement('div');d.className='jamo-card';d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span>`;d.addEventListener('click',()=>ins(ch));vg.appendChild(d);});
+  VOWELS.forEach(([ch,name])=>{const d=document.createElement('div');d.className='jamo-card';d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span>`;d.addEventListener('click',()=>{if(mode==='ko')inputJamo(ch);else{finalizeComp();finalText+=ch;}render();});vg.appendChild(d);});
   const sg=document.getElementById('jamo-special');
-  SPECIAL.forEach(([ch,name,cls,note])=>{const d=document.createElement('div');d.className=`jamo-card ${cls}`;d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span><span class="label" style="font-size:.55rem">${note}</span>`;d.addEventListener('click',()=>{ins(ch);showTab('type');document.querySelector('.tab').classList.add('active');});sg.appendChild(d);});
+  SPECIAL.forEach(([ch,name,cls,note])=>{const d=document.createElement('div');d.className=`jamo-card ${cls}`;d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span><span class="label" style="font-size:.55rem">${note}</span>`;d.addEventListener('click',()=>{finalizeComp();finalText+=ch;render();showTab('type');document.querySelector('.tab').classList.add('active');});sg.appendChild(d);});
 }
 buildRef();render();
 </script>
