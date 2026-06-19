@@ -2,629 +2,169 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>DRONE RUNNER</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXCELSIOR UAS</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#000; overflow:hidden; touch-action:none; }
-  canvas { display:block; }
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  width:100%;height:100%;
+  background:#07090f;
+  font-family:'Courier New',Courier,monospace;
+  color:#a0bce0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+}
+
+/* Subtle grid bg */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,180,255,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,180,255,0.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+}
+
+.logo{
+  text-align:center;
+  margin-bottom:56px;
+}
+.logo h1{
+  font-size:clamp(1.6rem,5vw,2.8rem);
+  color:#00ffff;
+  text-shadow:0 0 24px #00ffff88,0 0 60px #00aaff44;
+  letter-spacing:6px;
+  font-weight:normal;
+}
+.logo p{
+  font-size:0.72rem;
+  color:#334455;
+  letter-spacing:4px;
+  margin-top:6px;
+}
+
+.cards{
+  display:flex;
+  gap:28px;
+  flex-wrap:wrap;
+  justify-content:center;
+  padding:0 24px;
+}
+
+.card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  width:220px;
+  height:240px;
+  background:#090d18;
+  border:1px solid #1a3050;
+  border-radius:12px;
+  text-decoration:none;
+  color:#a0bce0;
+  cursor:pointer;
+  transition:all 0.2s ease;
+  position:relative;
+  overflow:hidden;
+}
+
+.card::before{
+  content:'';
+  position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 0%, rgba(0,200,255,0.06) 0%, transparent 70%);
+  opacity:0;
+  transition:opacity 0.3s;
+}
+
+.card:hover{
+  border-color:#00aaff;
+  transform:translateY(-4px);
+  box-shadow:0 0 32px #00aaff22, 0 12px 40px #00000066;
+}
+.card:hover::before{opacity:1;}
+
+.card.kr-card:hover{
+  border-color:#00ff88;
+  box-shadow:0 0 32px #00ff8822, 0 12px 40px #00000066;
+}
+.card.kr-card::before{
+  background:radial-gradient(circle at 50% 0%, rgba(0,255,136,0.06) 0%, transparent 70%);
+}
+
+.card-icon{
+  font-size:3rem;
+  line-height:1;
+}
+
+.card-title{
+  font-size:1rem;
+  letter-spacing:3px;
+  color:#c0d8f0;
+}
+
+.card-sub{
+  font-size:0.65rem;
+  color:#334466;
+  letter-spacing:2px;
+  text-align:center;
+  padding:0 16px;
+  line-height:1.6;
+}
+
+.card-tag{
+  position:absolute;
+  top:12px;right:12px;
+  font-size:0.58rem;
+  letter-spacing:1px;
+  padding:2px 8px;
+  border-radius:4px;
+  border:1px solid #1a4070;
+  color:#335577;
+}
+
+.card.kr-card .card-tag{
+  border-color:#1a4028;
+  color:#2a5540;
+}
+
+.footer{
+  position:fixed;
+  bottom:20px;
+  font-size:0.62rem;
+  color:#1c2840;
+  letter-spacing:2px;
+}
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<script>
-const canvas = document.getElementById('c');
-const ctx    = canvas.getContext('2d');
 
-// ── DIMENSIONS (fully responsive) ────────────────────────
-let W, H, SC; // SC = draw scale relative to reference 900×500
+<div class="logo">
+  <h1>EXCELSIOR UAS</h1>
+  <p>CHOOSE YOUR MISSION</p>
+</div>
 
-function setupCanvas() {
-  W = window.innerWidth;
-  H = window.innerHeight;
-  SC = Math.min(W / 900, H / 500);
-  canvas.width  = W;
-  canvas.height = H;
-}
-setupCanvas();
-window.addEventListener('resize', () => { setupCanvas(); stars.length=0; initStars(); });
+<div class="cards">
 
-// ── STATE ────────────────────────────────────────────────
-const S = { START:0, PLAY:1, DYING:2, OVER:3 };
-let state = S.START;
-let score=0, hiScore=+(localStorage.getItem('droneHi')||0), frame=0, speed=3, shake=0;
-let held=false;
-let lastGapY=null;
+  <a class="card" href="game.html">
+    <span class="card-tag">ARCADE</span>
+    <div class="card-icon">🚁</div>
+    <div class="card-title">DRONE RUNNER</div>
+    <div class="card-sub">Cyberpunk FPV arcade · avoid buildings · beat the world record</div>
+  </a>
 
-// ── GLOBAL HIGH SCORE (Firebase) ─────────────────────────
-const FB_URL='https://drone-runner-eb952-default-rtdb.firebaseio.com/hiscore.json';
-let worldHi=0;
-function fetchWorldHi(){
-  fetch(FB_URL).then(r=>r.json()).then(v=>{ if(v>0){ worldHi=v; if(v>hiScore) hiScore=v; } }).catch(()=>{});
-}
-function pushWorldHi(s){
-  fetch(FB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(s)}).catch(()=>{});
-}
-fetchWorldHi();
+  <a class="card kr-card" href="keyboard.html">
+    <span class="card-tag">TOOL</span>
+    <div class="card-icon">⌨</div>
+    <div class="card-title">한글 KEYBOARD</div>
+    <div class="card-sub">Korean keyboard with V · F consonants · ㅸ and ㆄ</div>
+  </a>
 
-// ── AUDIO ────────────────────────────────────────────────
-let audioCtx=null;
-let droneOsc=null, droneLFO=null, droneGainNode=null;
-let bgmMaster=null, bgmStarted=false, bgmStopped=false, bgmGen=0;
+</div>
 
-function initAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    bgmMaster = audioCtx.createGain();
-    bgmMaster.gain.value = 0.5;
-    bgmMaster.connect(audioCtx.destination);
-  }
-  // Safari: resume must be called synchronously inside the gesture handler
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  scheduleBGM();
-}
+<div class="footer">EXCELSIORUAS.COM</div>
 
-function startDroneSound() {
-  if (!audioCtx || droneOsc) return;
-  const filter = audioCtx.createBiquadFilter();
-  filter.type='bandpass'; filter.frequency.value=280; filter.Q.value=2.5;
-  droneGainNode = audioCtx.createGain();
-  droneGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-  droneGainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime+0.07);
-  droneOsc = audioCtx.createOscillator();
-  droneOsc.type='sawtooth'; droneOsc.frequency.value=130;
-  droneLFO = audioCtx.createOscillator();
-  const lfoG = audioCtx.createGain();
-  droneLFO.frequency.value=55; lfoG.gain.value=35;
-  droneLFO.connect(lfoG); lfoG.connect(droneOsc.frequency);
-  droneOsc.connect(filter); filter.connect(droneGainNode);
-  droneGainNode.connect(audioCtx.destination);
-  droneLFO.start(); droneOsc.start();
-}
-
-function stopDroneSound() {
-  if (!droneGainNode) return;
-  droneGainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime+0.18);
-  const o=droneOsc, l=droneLFO;
-  droneOsc=null; droneLFO=null; droneGainNode=null;
-  setTimeout(()=>{ try{o.stop();l.stop();}catch(e){} }, 250);
-}
-
-function stopBGM() {
-  bgmStopped=true;
-  if (bgmMaster && audioCtx) {
-    bgmMaster.gain.cancelScheduledValues(audioCtx.currentTime);
-    bgmMaster.gain.linearRampToValueAtTime(0, audioCtx.currentTime+0.35);
-  }
-}
-
-function restartBGM() {
-  if (!audioCtx || !bgmMaster) return;
-  bgmGen++;           // invalidates all running loops
-  bgmStopped=false; bgmStarted=false;
-  bgmMaster.gain.cancelScheduledValues(audioCtx.currentTime);
-  bgmMaster.gain.setValueAtTime(0, audioCtx.currentTime);
-  bgmMaster.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime+0.3);
-  setTimeout(()=>scheduleBGM(), 120);
-}
-
-function playCrashSound() {
-  if (!audioCtx) return;
-  const now=audioCtx.currentTime;
-  const bufLen=Math.floor(audioCtx.sampleRate*0.55);
-  const buf=audioCtx.createBuffer(1,bufLen,audioCtx.sampleRate);
-  const d=buf.getChannelData(0); for(let i=0;i<bufLen;i++) d[i]=Math.random()*2-1;
-  const ns=audioCtx.createBufferSource(); ns.buffer=buf;
-  const nf=audioCtx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=700;
-  const ng=audioCtx.createGain();
-  ng.gain.setValueAtTime(0.9,now); ng.gain.exponentialRampToValueAtTime(0.001,now+0.45);
-  ns.connect(nf); nf.connect(ng); ng.connect(audioCtx.destination); ns.start(now);
-  const co=audioCtx.createOscillator(); const cg=audioCtx.createGain();
-  co.type='sawtooth'; co.frequency.setValueAtTime(240,now); co.frequency.exponentialRampToValueAtTime(28,now+0.5);
-  cg.gain.setValueAtTime(0.5,now); cg.gain.exponentialRampToValueAtTime(0.001,now+0.5);
-  co.connect(cg); cg.connect(audioCtx.destination); co.start(now); co.stop(now+0.6);
-}
-
-function playBatteryPickup() {
-  if (!audioCtx) return;
-  const now = audioCtx.currentTime;
-  // iPhone charge chime — two ascending sine tones, clean and bright
-  [[1046.50, 0.00, 0.18],   // C6
-   [1318.51, 0.09, 0.28]].forEach(([freq, delay, dur]) => {
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = 'sine'; o.frequency.value = freq;
-    g.gain.setValueAtTime(0, now+delay);
-    g.gain.linearRampToValueAtTime(0.38, now+delay+0.008);
-    g.gain.exponentialRampToValueAtTime(0.001, now+delay+dur);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(now+delay); o.stop(now+delay+dur+0.02);
-  });
-  // Subtle shimmer (octave above, very quiet)
-  const shimmer = audioCtx.createOscillator();
-  const sg = audioCtx.createGain();
-  shimmer.type = 'sine'; shimmer.frequency.value = 2637.02; // E7
-  sg.gain.setValueAtTime(0, now+0.09);
-  sg.gain.linearRampToValueAtTime(0.08, now+0.1);
-  sg.gain.exponentialRampToValueAtTime(0.001, now+0.3);
-  shimmer.connect(sg); sg.connect(audioCtx.destination);
-  shimmer.start(now+0.09); shimmer.stop(now+0.32);
-}
-
-function playEerieSound() {
-  if (!audioCtx) return;
-  const now=audioCtx.currentTime;
-  [220,233.08,246.94,261.63].forEach((freq,i)=>{
-    const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(freq,now+i*0.2);
-    o.frequency.linearRampToValueAtTime(freq*0.45,now+4);
-    g.gain.setValueAtTime(0,now+i*0.2); g.gain.linearRampToValueAtTime(0.13,now+i*0.2+0.35);
-    g.gain.linearRampToValueAtTime(0,now+4.2);
-    o.connect(g); g.connect(audioCtx.destination); o.start(now+i*0.2); o.stop(now+4.5);
-  });
-  const ro=audioCtx.createOscillator(); const rg=audioCtx.createGain();
-  const rf=audioCtx.createBiquadFilter(); rf.type='lowpass'; rf.frequency.value=100;
-  ro.type='sawtooth'; ro.frequency.setValueAtTime(42,now); ro.frequency.linearRampToValueAtTime(22,now+2.5);
-  rg.gain.setValueAtTime(0.28,now); rg.gain.linearRampToValueAtTime(0,now+2.8);
-  ro.connect(rf); rf.connect(rg); rg.connect(audioCtx.destination); ro.start(now); ro.stop(now+3);
-}
-
-function scheduleBGM() {
-  if (bgmStarted||!audioCtx) return;
-  bgmStarted=true;
-  const beat=60/115, sixteenth=beat/4, bar=beat*4;
-  const arp=[440,523.25,659.25,783.99,659.25,523.25,440,523.25,
-             880,783.99,659.25,523.25,659.25,783.99,523.25,440];
-  const bassRoots=[110,82.41,87.31,98.00];
-  const myGen = bgmGen;
-  function playLoop() {
-    if (bgmStopped||!audioCtx||!bgmMaster||bgmGen!==myGen) return;
-    const now=audioCtx.currentTime, loopLen=bar*4;
-    for(let s=0;s<32;s++){
-      const t=now+s*sixteenth, freq=arp[s%arp.length];
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain(),f=audioCtx.createBiquadFilter();
-      f.type='lowpass'; f.frequency.value=2200; f.Q.value=4;
-      o.type='square'; o.frequency.value=freq; o.detune.value=(Math.random()-0.5)*6;
-      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.055,t+0.012);
-      g.gain.linearRampToValueAtTime(0.03,t+sixteenth*0.45); g.gain.linearRampToValueAtTime(0,t+sixteenth*0.75);
-      o.connect(f); f.connect(g); g.connect(bgmMaster); o.start(t); o.stop(t+sixteenth*0.8);
-    }
-    for(let b=0;b<16;b++){
-      if(b%4!==0&&b%4!==2&&!(b%4===3&&Math.random()>0.5)) continue;
-      const t=now+b*beat;
-      const bo=audioCtx.createOscillator(),bg2=audioCtx.createGain(),bf=audioCtx.createBiquadFilter();
-      bf.type='lowpass'; bf.frequency.value=320; bo.type='sawtooth';
-      bo.frequency.value=bassRoots[Math.floor(b/4)%bassRoots.length];
-      bg2.gain.setValueAtTime(0,t); bg2.gain.linearRampToValueAtTime(0.28,t+0.018);
-      bg2.gain.linearRampToValueAtTime(0.15,t+beat*0.4); bg2.gain.linearRampToValueAtTime(0,t+beat*0.85);
-      bo.connect(bf); bf.connect(bg2); bg2.connect(bgmMaster); bo.start(t); bo.stop(t+beat);
-    }
-    [0,beat*2,beat*2.75].forEach(offset=>{
-      const t=now+offset;
-      const ko=audioCtx.createOscillator(),kg=audioCtx.createGain();
-      ko.type='sine'; ko.frequency.setValueAtTime(140,t); ko.frequency.exponentialRampToValueAtTime(28,t+0.14);
-      kg.gain.setValueAtTime(0.45,t); kg.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-      ko.connect(kg); kg.connect(bgmMaster); ko.start(t); ko.stop(t+0.22);
-    });
-    for(let h=0;h<32;h++){
-      if(h%2!==0&&Math.random()>0.45) continue;
-      const t=now+h*sixteenth;
-      const hBuf=audioCtx.createBuffer(1,Math.floor(audioCtx.sampleRate*0.04),audioCtx.sampleRate);
-      const hd=hBuf.getChannelData(0); for(let i=0;i<hd.length;i++) hd[i]=Math.random()*2-1;
-      const hs=audioCtx.createBufferSource(); hs.buffer=hBuf;
-      const hf=audioCtx.createBiquadFilter(); hf.type='highpass'; hf.frequency.value=9000;
-      const hg=audioCtx.createGain(); hg.gain.setValueAtTime(h%4===0?0.055:0.025,t); hg.gain.exponentialRampToValueAtTime(0.001,t+0.035);
-      hs.connect(hf); hf.connect(hg); hg.connect(bgmMaster); hs.start(t);
-    }
-    setTimeout(playLoop,(loopLen-0.08)*1000);
-  }
-  playLoop();
-}
-
-// ── DRONE ────────────────────────────────────────────────
-const drone = {
-  x:0, y:0, vy:0, battery:100, alive:true, rotor:0, rotorSpeed:0.32, powerLoss:false,
-  reset() { this.x=W*0.18; this.y=H/2; this.vy=0; this.battery=100; this.alive=true; this.rotorSpeed=0.32; this.powerLoss=false; },
-  thrust() {
-    [this.x-19*SC, this.x+15*SC].forEach(px=>{
-      for(let i=0;i<2;i++) addParticle(px+(Math.random()-0.5)*8*SC, this.y-10*SC,
-        (Math.random()-0.5)*1.5, Math.random()*2.5+1.5, '#00bbff', 0.55);
-    });
-  },
-  update() {
-    if (!this.alive) return;
-    if (!this.powerLoss && held){ this.vy-=1.1; if(this.vy<-7) this.vy=-7; if(frame%2===0) this.thrust(); }
-    this.vy += 0.46;
-    if (this.powerLoss) this.vy = Math.min(this.vy, 14); // cap fall speed
-    this.y  += this.vy;
-    this.rotorSpeed = this.powerLoss ? Math.max(0, this.rotorSpeed-0.012) : 0.32;
-    this.rotor += this.rotorSpeed;
-    if (!this.powerLoss){
-      this.battery -= 0.042*(speed/3);
-      if (this.battery<=0){
-        this.battery=0; this.powerLoss=true;
-        stopDroneSound();
-      }
-    }
-    if (this.y<8)  { this.y=8;  this.vy=0; }
-    if (this.y>H-8) this.die();
-  },
-  die() {
-    if (!this.alive) return;
-    this.alive=false;
-    for(let i=0;i<50;i++){
-      const a=(Math.PI*2/50)*i, sp=Math.random()*6+2;
-      addParticle(this.x,this.y,Math.cos(a)*sp,Math.sin(a)*sp,
-        Math.random()>0.5?'#ff5500':'#ffcc00',1.6);
-    }
-    shake=18; stopDroneSound(); playCrashSound(); stopBGM();
-    setTimeout(()=>playEerieSound(),300);
-    state=S.DYING;
-    setTimeout(()=>{ state=S.OVER; },1500);
-  },
-  draw() {
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    const tilt=Math.max(-0.28,Math.min(0.28,this.vy*0.04*(500/H)));
-    ctx.rotate(tilt);
-    ctx.scale(SC, SC); // scale to screen
-
-    // REAR ARM
-    ctx.fillStyle='#1c1c38'; ctx.strokeStyle='#004488'; ctx.lineWidth=1.5;
-    ctx.shadowColor='#0066aa'; ctx.shadowBlur=6;
-    ctx.beginPath(); ctx.roundRect(-22,-26,5,22,2); ctx.fill(); ctx.stroke();
-    // FRONT ARM
-    ctx.beginPath(); ctx.roundRect(13,-28,5,24,2); ctx.fill(); ctx.stroke();
-    // CHASSIS
-    ctx.fillStyle='#13132a'; ctx.strokeStyle='#005599'; ctx.lineWidth=2;
-    ctx.shadowColor='#0077bb'; ctx.shadowBlur=10;
-    ctx.beginPath(); ctx.moveTo(-30,-5); ctx.lineTo(16,-7); ctx.lineTo(22,-1);
-    ctx.lineTo(22,6); ctx.lineTo(16,8); ctx.lineTo(-30,6); ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    // BATTERY HUMP
-    ctx.fillStyle='#1a1a35'; ctx.strokeStyle='#003366'; ctx.lineWidth=1; ctx.shadowBlur=4;
-    ctx.beginPath(); ctx.roundRect(-16,-11,22,5,2); ctx.fill(); ctx.stroke();
-    // CANOPY LINE
-    ctx.strokeStyle='#0055aa'; ctx.lineWidth=1; ctx.shadowBlur=3;
-    ctx.beginPath(); ctx.moveTo(-14,-5); ctx.lineTo(14,-6); ctx.stroke();
-    // CAMERA
-    ctx.save(); ctx.translate(27,0); ctx.rotate(-0.18);
-    ctx.fillStyle='#0c0c1f'; ctx.strokeStyle='#0099cc'; ctx.lineWidth=1.5;
-    ctx.shadowColor='#00ccff'; ctx.shadowBlur=10;
-    ctx.beginPath(); ctx.roundRect(-2,-11,14,15,3); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#07071a'; ctx.strokeStyle='#00aadd'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(5,2,5.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#030310'; ctx.strokeStyle='#0077aa'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(5,2,3.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.shadowBlur=0; ctx.fillStyle='rgba(150,220,255,0.55)';
-    ctx.beginPath(); ctx.arc(3.2,0.2,1.4,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-    // MOTOR HOUSINGS
-    ctx.shadowColor='#0088cc'; ctx.shadowBlur=8;
-    ctx.fillStyle='#111128'; ctx.strokeStyle='#0077cc'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.arc(-19,-27,5.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(15,-29,5.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle='#005599'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(-19,-27,3,0,Math.PI*2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(15,-29,3,0,Math.PI*2); ctx.stroke();
-    // PROPELLERS (horizontal spinning disc)
-    const drawProp=(px,py)=>{
-      ctx.save(); ctx.translate(px,py);
-      const pulse=Math.sin(this.rotor*6)*0.12+0.88;
-      ctx.shadowColor='#00eeff'; ctx.shadowBlur=14;
-      for(let i=3;i>=0;i--){
-        ctx.fillStyle=`rgba(0,200,255,${(0.11-i*0.022)*pulse})`;
-        ctx.beginPath(); ctx.ellipse(0,0,19+i,4.5-i*0.7,0,0,Math.PI*2); ctx.fill();
-      }
-      ctx.strokeStyle=`rgba(0,225,255,${0.88*pulse})`; ctx.lineWidth=1.8;
-      ctx.beginPath(); ctx.ellipse(0,0,18,3.2,0,0,Math.PI*2); ctx.stroke();
-      ctx.strokeStyle=`rgba(180,245,255,${0.5*pulse})`; ctx.lineWidth=1;
-      ctx.beginPath(); ctx.ellipse(0,-0.6,14,1.8,0,Math.PI,Math.PI*2); ctx.stroke();
-      const bx=Math.cos(this.rotor*2)*13, by=Math.sin(this.rotor*2)*2.8;
-      ctx.fillStyle=`rgba(255,255,255,${0.38*pulse})`; ctx.shadowBlur=8;
-      ctx.beginPath(); ctx.ellipse(bx,by,4.5,1.4,this.rotor*2,0,Math.PI*2); ctx.fill();
-      ctx.shadowBlur=10; ctx.fillStyle='#00ccff';
-      ctx.beginPath(); ctx.arc(0,0,3.2,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#003355'; ctx.beginPath(); ctx.arc(0,0,1.6,0,Math.PI*2); ctx.fill();
-      ctx.restore();
-    };
-    drawProp(-19,-27); drawProp(15,-29);
-    // LEDs
-    ctx.shadowColor='#ff3300'; ctx.shadowBlur=14; ctx.fillStyle='#ff3300';
-    ctx.beginPath(); ctx.arc(-29,2,2.8,0,Math.PI*2); ctx.fill();
-    ctx.shadowColor='#00ff77'; ctx.shadowBlur=14; ctx.fillStyle='#00ff77';
-    ctx.beginPath(); ctx.arc(21,4,2.8,0,Math.PI*2); ctx.fill();
-    // ANTENNA
-    ctx.shadowBlur=0; ctx.strokeStyle='#2a2a50'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(-25,-6); ctx.lineTo(-33,-23); ctx.stroke();
-    ctx.fillStyle='#4455aa'; ctx.beginPath(); ctx.arc(-33,-23,2.2,0,Math.PI*2); ctx.fill();
-
-    ctx.restore();
-  }
-};
-
-// ── PARTICLES ────────────────────────────────────────────
-let particles=[];
-function addParticle(x,y,vx,vy,color,life){
-  particles.push({x,y,vx,vy,color,life,maxLife:life,size:Math.random()*3+2});
-}
-function updateDrawParticles(){
-  particles=particles.filter(p=>p.life>0);
-  particles.forEach(p=>{
-    p.x+=p.vx; p.y+=p.vy; p.vy+=0.12; p.life-=0.04;
-    const a=Math.max(0,p.life/p.maxLife);
-    ctx.globalAlpha=a; ctx.fillStyle=p.color;
-    ctx.shadowColor=p.color; ctx.shadowBlur=8;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.size*a,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=1; ctx.shadowBlur=0;
-  });
-}
-
-// ── BUILDINGS ────────────────────────────────────────────
-class Building {
-  constructor(){
-    this.x=W+60;
-    const gap=Math.max(H*0.40, H*0.58 - score*(H/2000));
-    const minGY=H*0.1, maxGY=H*0.9-gap;
-    let gapY;
-    if(lastGapY===null){
-      gapY=minGY+Math.random()*(maxGY-minGY);
-    } else {
-      // limit gap shift so consecutive passages are always reachable
-      const maxShift=H*0.28;
-      gapY=Math.max(minGY,Math.min(maxGY, lastGapY+(Math.random()*2-1)*maxShift));
-    }
-    lastGapY=gapY;
-    this.topH=gapY; this.botY=gapY+gap; this.botH=H-this.botY;
-    this.w=Math.max(50, Math.round(W*0.076));
-    this.scored=false; this.hue=210+Math.random()*50;
-  }
-  update(){ this.x-=speed; }
-  draw(){
-    const col=`hsl(${this.hue},50%,18%)`, edge=`hsl(${this.hue},80%,55%)`;
-    ctx.shadowColor=edge; ctx.shadowBlur=5;
-    ctx.fillStyle=col; ctx.fillRect(this.x,0,this.w,this.topH);
-    ctx.fillStyle=edge; ctx.fillRect(this.x,this.topH-4,this.w,4);
-    ctx.fillStyle=col; ctx.fillRect(this.x,this.botY,this.w,this.botH);
-    ctx.fillStyle=edge; ctx.fillRect(this.x,this.botY,this.w,4);
-    ctx.shadowBlur=3;
-    [[0,this.topH-10],[this.botY+6,H-4]].forEach(([y0,y1])=>{
-      for(let wy=y0+8;wy<y1;wy+=18)
-        for(let wx=this.x+7;wx<this.x+this.w-7;wx+=12)
-          if(Math.sin(wx*13+wy*7)>0.25){
-            ctx.fillStyle=`rgba(255,210,90,${0.35+Math.random()*0.2})`;
-            ctx.fillRect(wx,wy,5,7);
-          }
-    });
-    ctx.shadowBlur=0;
-  }
-  hits(d){
-    // hitbox matches the drone's core chassis, not arms/camera/props
-    const hw=Math.round(16*SC), hh=Math.round(6*SC);
-    return d.x+hw>this.x && d.x-hw<this.x+this.w &&
-           (d.y-hh<this.topH || d.y+hh>this.botY);
-  }
-}
-
-// ── BATTERIES ────────────────────────────────────────────
-class Battery {
-  constructor(){
-    this.x=W+40; this.y=H*0.14+Math.random()*H*0.72;
-    this.taken=false; this.pulse=Math.random()*Math.PI*2;
-  }
-  update(){ this.x-=speed; this.pulse+=0.1; }
-  draw(){
-    const glow=Math.sin(this.pulse)*5+12;
-    ctx.shadowColor='#00ff88'; ctx.shadowBlur=glow;
-    ctx.fillStyle='#002211'; ctx.strokeStyle='#00ff88'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.roundRect(this.x-11,this.y-8,22,16,3); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#00ff88';
-    ctx.beginPath(); ctx.roundRect(this.x+11,this.y-4,4,8,2); ctx.fill();
-    ctx.fillRect(this.x-9,this.y-5,15,10);
-    ctx.fillStyle='#002211'; ctx.fillRect(this.x-9,this.y-5,4,10);
-    ctx.shadowBlur=0;
-  }
-  hits(d){ return Math.hypot(d.x-this.x,d.y-this.y)<28*SC; }
-}
-
-// ── BACKGROUND ───────────────────────────────────────────
-const stars=[];
-function initStars(){
-  for(let i=0;i<160;i++) stars.push({
-    x:Math.random()*W, y:Math.random()*H,
-    r:Math.random()*1.4+0.4, sp:Math.random()*0.25+0.05,
-    t:Math.random()*Math.PI*2
-  });
-}
-initStars();
-
-const bgBldgs=[];
-function makeBgBldg(x){ return {x,w:35+Math.random()*60,h:60+Math.random()*160,sp:0.4+Math.random()*0.5}; }
-for(let i=0;i<9;i++) bgBldgs.push(makeBgBldg(Math.random()*W));
-
-function drawBackground(){
-  const g=ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#03030e'); g.addColorStop(1,'#080818');
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  stars.forEach(s=>{
-    const tw=Math.sin(frame*0.04+s.t)*0.3+0.7;
-    ctx.fillStyle=`rgba(255,255,255,${tw*0.7})`;
-    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
-    if(state===S.PLAY){ s.x-=s.sp; if(s.x<0) s.x=W; }
-  });
-  bgBldgs.forEach(b=>{
-    ctx.fillStyle='#0c0c20'; ctx.fillRect(b.x,H-b.h,b.w,b.h);
-    for(let wy=H-b.h+8;wy<H-6;wy+=14)
-      for(let wx=b.x+5;wx<b.x+b.w-5;wx+=9)
-        if(Math.sin(wx*17+wy*11)>0.3){ ctx.fillStyle='rgba(255,190,70,0.18)'; ctx.fillRect(wx,wy,4,5); }
-    if(state===S.PLAY){ b.x-=b.sp; if(b.x+b.w<0){ Object.assign(b,makeBgBldg(W+b.w)); } }
-  });
-}
-
-// ── HUD ──────────────────────────────────────────────────
-function drawHUD(){
-  const fs=Math.max(16, Math.round(28*SC));
-  ctx.shadowColor='#00ffff'; ctx.shadowBlur=12;
-  ctx.fillStyle='#ffffff'; ctx.font=`bold ${fs}px Courier New`;
-  ctx.textAlign='left'; ctx.fillText(Math.floor(score),18,fs+14);
-  ctx.shadowBlur=0; ctx.fillStyle='#5566aa';
-  ctx.font=`${Math.max(10,Math.round(12*SC))}px Courier New`;
-  ctx.fillText('SCORE',18,fs+28);
-
-  const bw=Math.min(142,Math.round(W*0.32)), bh=Math.round(20*SC), bx=W-bw-16, by=14;
-  const pct=drone.battery/100;
-  const bc=pct>0.5?'#00ff88':pct>0.25?'#ffcc00':'#ff4400';
-  ctx.strokeStyle=bc; ctx.shadowColor=bc; ctx.shadowBlur=6;
-  ctx.lineWidth=2; ctx.strokeRect(bx,by,bw,bh);
-  ctx.fillStyle=bc; ctx.fillRect(bx+2,by+2,(bw-4)*pct,bh-4);
-  ctx.fillRect(bx+bw,by+5,5,bh-10);
-  ctx.shadowBlur=0; ctx.fillStyle='#5566aa';
-  ctx.font=`${Math.max(10,Math.round(11*SC))}px Courier New`;
-  ctx.fillText('BATTERY',bx,by+bh+14);
-}
-
-// ── SCREENS ──────────────────────────────────────────────
-function drawStartScreen(){
-  ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,W,H);
-  ctx.textAlign='center';
-  const tf=Math.max(32,Math.round(64*SC));
-  ctx.shadowColor='#00ffff'; ctx.shadowBlur=32;
-  ctx.fillStyle='#00ffff'; ctx.font=`bold ${tf}px Courier New`;
-  ctx.fillText('DRONE',W/2,H/2-tf*0.9);
-  ctx.fillStyle='#ffffff'; ctx.fillText('RUNNER',W/2,H/2);
-  ctx.shadowBlur=0; ctx.fillStyle='#aabbdd';
-  ctx.font=`${Math.max(12,Math.round(18*SC))}px Courier New`;
-  ctx.fillText('TAP / HOLD to fly',W/2,H/2+tf*0.85);
-  ctx.fillStyle='#556688';
-  ctx.font=`${Math.max(10,Math.round(13*SC))}px Courier New`;
-  ctx.fillText('Collect batteries  ·  Dodge buildings',W/2,H/2+tf*1.2);
-  if(worldHi>0){
-    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=14;
-    ctx.font=`bold ${Math.max(14,Math.round(18*SC))}px Courier New`;
-    ctx.fillText(`✦  WORLD  ${Math.floor(worldHi)}  ✦`,W/2,H/2+tf*1.58);
-    ctx.shadowBlur=0;
-  }
-  ctx.textAlign='left';
-}
-
-function drawGameOverScreen(){
-  ctx.fillStyle='rgba(0,0,0,0.68)'; ctx.fillRect(0,0,W,H);
-  ctx.textAlign='center';
-  const tf=Math.max(28,Math.round(54*SC));
-  ctx.shadowColor='#ff5500'; ctx.shadowBlur=28;
-  ctx.fillStyle='#ff5500'; ctx.font=`bold ${tf}px Courier New`;
-  ctx.fillText('CRASHED',W/2,H/2-tf*0.9);
-  ctx.shadowColor='#ffffff'; ctx.shadowBlur=10;
-  ctx.fillStyle='#ffffff'; ctx.font=`bold ${Math.round(tf*0.62)}px Courier New`;
-  ctx.fillText(`SCORE  ${Math.floor(score)}`,W/2,H/2+8);
-  if(Math.floor(score)>Math.floor(worldHi)&&worldHi>0){
-    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=20;
-    ctx.font=`bold ${Math.round(tf*0.42)}px Courier New`;
-    ctx.fillText('✦  WORLD RECORD  ✦',W/2,H/2+tf*0.75);
-  } else if(Math.floor(score)>=Math.floor(hiScore)&&hiScore>0){
-    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00'; ctx.shadowBlur=20;
-    ctx.font=`bold ${Math.round(tf*0.42)}px Courier New`;
-    ctx.fillText('✦  NEW HIGH SCORE  ✦',W/2,H/2+tf*0.75);
-  } else {
-    // show BEST and WORLD on separate lines, bold and bright
-    ctx.shadowBlur=12;
-    ctx.fillStyle='#00ffff'; ctx.shadowColor='#00ffff';
-    ctx.font=`bold ${Math.round(tf*0.38)}px Courier New`;
-    ctx.fillText(`BEST  ${Math.floor(hiScore)}`,W/2,H/2+tf*0.72);
-    ctx.fillStyle='#ffcc00'; ctx.shadowColor='#ffcc00';
-    ctx.fillText(`WORLD  ${Math.floor(worldHi)}`,W/2,H/2+tf*1.12);
-  }
-  ctx.shadowBlur=0; ctx.fillStyle='#445577';
-  ctx.font=`${Math.max(10,Math.round(tf*0.28))}px Courier New`;
-  ctx.fillText('TAP to restart',W/2,H/2+tf*1.6);
-  ctx.textAlign='left';
-}
-
-// ── GAME OBJECTS ─────────────────────────────────────────
-let buildings=[], batteries=[], bTimer=0, batTimer=0;
-
-function startGame(){
-  if(score>hiScore){ hiScore=score; localStorage.setItem('droneHi',hiScore); }
-  if(score>worldHi){ worldHi=score; pushWorldHi(score); }
-  score=0; frame=0; speed=3; shake=0; held=false;
-  lastGapY=null;
-  buildings=[]; batteries=[]; particles=[]; bTimer=0; batTimer=0;
-  drone.reset();
-  if(audioCtx) restartBGM();
-  state=S.PLAY;
-}
-
-function handlePress(){
-  initAudio();
-  if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
-  if(state===S.START) startGame();
-  else if(state===S.PLAY){ held=true; startDroneSound(); }
-  else if(state===S.OVER) startGame();
-}
-function handleRelease(){ held=false; stopDroneSound(); }
-
-document.addEventListener('keydown',  e=>{ if(e.code==='Space'){e.preventDefault();handlePress();} });
-document.addEventListener('keyup',    e=>{ if(e.code==='Space'){e.preventDefault();handleRelease();} });
-canvas.addEventListener('mousedown',  ()=>handlePress());
-canvas.addEventListener('mouseup',    ()=>handleRelease());
-canvas.addEventListener('mouseleave', ()=>handleRelease());
-canvas.addEventListener('touchstart', e=>{ e.preventDefault(); handlePress(); },  {passive:false});
-canvas.addEventListener('touchend',   e=>{ e.preventDefault(); handleRelease(); },{passive:false});
-
-// ── LOOP ─────────────────────────────────────────────────
-const FRAME_MS = 1000 / 60;
-let lastFrameTime = 0;
-
-function loop(ts){
-  if (ts - lastFrameTime < FRAME_MS - 1) { requestAnimationFrame(loop); return; }
-  lastFrameTime = ts;
-  frame++;
-  let sx=0,sy=0;
-  if(shake>0){ sx=(Math.random()-.5)*shake; sy=(Math.random()-.5)*shake; shake*=0.8; if(shake<0.5)shake=0; }
-  ctx.save(); ctx.translate(sx,sy);
-
-  drawBackground();
-
-  if(state===S.PLAY){
-    score+=0.055*(speed/3);
-    speed=3+score*0.002;
-    drone.update(); // update drone first so collision checks current-frame position
-    bTimer++;
-    const bInterval=Math.max(68,120-score*0.09);
-    if(bTimer>bInterval){ buildings.push(new Building()); bTimer=0; }
-    batTimer++;
-    if(batTimer>180){ batteries.push(new Battery()); batTimer=0; }
-    buildings=buildings.filter(b=>b.x>-80);
-    buildings.forEach(b=>{
-      b.update();
-      if(!b.scored&&b.x+b.w<drone.x){ b.scored=true; score+=10; }
-      if(!b.scored && b.hits(drone)) drone.die();
-    });
-    batteries=batteries.filter(b=>b.x>-50&&!b.taken);
-    batteries.forEach(b=>{
-      b.update();
-      if(b.hits(drone)){
-        b.taken=true; drone.battery=Math.min(100,drone.battery+45);
-        playBatteryPickup();
-        for(let i=0;i<16;i++) addParticle(b.x,b.y,(Math.random()-.5)*5,(Math.random()-.5)*5,'#00ff88',1.1);
-      }
-    });
-  }
-
-  buildings.forEach(b=>b.draw());
-  batteries.forEach(b=>b.draw());
-  updateDrawParticles();
-  drone.draw();
-
-  if(state===S.PLAY||state===S.DYING) drawHUD();
-  if(state===S.START) drawStartScreen();
-  if(state===S.OVER)  drawGameOverScreen();
-
-  ctx.restore();
-  requestAnimationFrame(loop);
-}
-
-loop();
-</script>
 </body>
 </html>
