@@ -13,167 +13,115 @@ body{
   align-items:center;justify-content:flex-start;
   padding:28px 16px;
 }
-h1{
-  font-size:1.45rem;color:#00ffff;
-  text-shadow:0 0 14px #00ffff88;
-  margin-bottom:5px;letter-spacing:3px;text-align:center;
-}
-.sub{
-  font-size:0.68rem;color:#334455;
-  letter-spacing:2px;margin-bottom:16px;text-align:center;
-}
+h1{font-size:1.45rem;color:#00ffff;text-shadow:0 0 14px #00ffff88;margin-bottom:5px;letter-spacing:3px;text-align:center;}
+.sub{font-size:0.68rem;color:#334455;letter-spacing:2px;margin-bottom:16px;text-align:center;}
 
-/* ── Mode badge ── */
-.mode-bar{
-  display:flex;align-items:center;gap:12px;
-  width:100%;max-width:700px;margin-bottom:14px;
-}
-.mode-badge{
-  padding:5px 16px;border-radius:6px;
-  font-size:0.9rem;letter-spacing:2px;font-weight:bold;
-  cursor:pointer;transition:all .15s;border:1px solid;
-  user-select:none;
-}
-.mode-badge.ko{
-  background:#0a1e30;border-color:#0077cc;color:#00ccff;
-  box-shadow:0 0 10px #00aaff33;
-}
-.mode-badge.en{
-  background:#1a100a;border-color:#cc7700;color:#ffaa00;
-  box-shadow:0 0 10px #ffaa0033;
-}
+.mode-bar{display:flex;align-items:center;gap:12px;width:100%;max-width:700px;margin-bottom:14px;}
+.mode-badge{padding:5px 16px;border-radius:6px;font-size:0.9rem;letter-spacing:2px;font-weight:bold;cursor:pointer;transition:all .15s;border:1px solid;user-select:none;}
+.mode-badge.ko{background:#0a1e30;border-color:#0077cc;color:#00ccff;box-shadow:0 0 10px #00aaff33;}
+.mode-badge.en{background:#1a100a;border-color:#cc7700;color:#ffaa00;box-shadow:0 0 10px #ffaa0033;}
 .mode-hint{font-size:0.62rem;color:#2a4055;letter-spacing:1px;}
 
-/* ── Output ── */
 .output-wrap{width:100%;max-width:700px;margin-bottom:10px;}
-#output{
-  width:100%;min-height:90px;
-  background:#04080f;
-  border:1px solid #1a3050;border-radius:6px;
-  padding:14px 16px;
-  font-size:1.65rem;color:#e4f0ff;
-  letter-spacing:3px;word-break:break-all;line-height:1.7;
-  cursor:default;
-}
+#output{width:100%;min-height:90px;background:#04080f;border:1px solid #1a3050;border-radius:6px;padding:14px 16px;font-size:1.65rem;color:#e4f0ff;letter-spacing:3px;word-break:break-all;line-height:1.7;cursor:default;}
 
-/* ── Buttons ── */
 .btn-row{display:flex;gap:8px;width:100%;max-width:700px;margin-bottom:22px;}
-.btn{
-  padding:7px 14px;background:#0c1520;
-  border:1px solid #1a2e48;border-radius:4px;
-  color:#5577aa;font-family:'Courier New',monospace;
-  font-size:0.72rem;cursor:pointer;letter-spacing:1px;
-  transition:all .15s;
-}
+.btn{padding:7px 14px;background:#0c1520;border:1px solid #1a2e48;border-radius:4px;color:#5577aa;font-family:'Courier New',monospace;font-size:0.72rem;cursor:pointer;letter-spacing:1px;transition:all .15s;}
 .btn:hover{border-color:#00aaff;color:#00ccff;}
 .btn.copy{margin-left:auto;}
 .btn.copied{border-color:#00ff88!important;color:#00ff88!important;}
 
 /* ── Keyboard ── */
-.keyboard{
-  background:#070c16;border:1px solid #182a40;
-  border-radius:12px;padding:18px 14px;
-  width:100%;max-width:700px;
-  user-select:none;
-}
+.keyboard{background:#070c16;border:1px solid #182a40;border-radius:12px;padding:18px 14px;width:100%;max-width:700px;user-select:none;}
 .key-row{display:flex;justify-content:center;gap:5px;margin-bottom:5px;}
 
 .key{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-width:52px;height:56px;flex:1;max-width:62px;
+  min-width:48px;height:56px;flex:1;max-width:60px;
   background:#0d1828;border:1px solid #1c3050;
   border-radius:7px;cursor:pointer;
   transition:background .08s,border-color .08s;
-  position:relative;overflow:hidden;
+  position:relative;
 }
 .key:hover{background:#162033;border-color:#0077cc;}
 .key.pressed{background:#0a2a4a;border-color:#00ccff;box-shadow:0 0 8px #00ccff66;}
 
-/* Each key shows both .en-lbl and .kr-lbl, visibility swaps on mode */
-.key .en-lbl{
-  font-size:0.58rem;color:#2a4060;
-  line-height:1;align-self:flex-start;
-  padding:4px 5px 0;letter-spacing:0;
-  transition:color .15s;
+/* Labels inside key */
+.key .top-row{
+  display:flex;justify-content:space-between;
+  width:100%;padding:3px 4px 0;
+  line-height:1;
 }
-.key .kr-lbl{
-  font-size:1.2rem;color:#90b8e0;
-  line-height:1;margin-top:2px;
-  transition:color .15s,font-size .1s;
-}
+.key .en-lbl{font-size:0.58rem;color:#2a4060;}
+.key .sh-lbl{font-size:0.7rem;color:#3a5040;} /* shift variant, top-right */
+.key .main-lbl{font-size:1.2rem;color:#90b8e0;line-height:1;margin-top:1px;}
 
-/* EN mode: big english letter, small kr */
-body.en-mode .key .en-lbl{color:#ffaa44;font-size:1.2rem;align-self:center;padding:0;}
-body.en-mode .key .kr-lbl{font-size:0.65rem;color:#2a4055;margin-top:0;}
-/* KO mode default is fine */
+/* EN mode */
+body.en-mode .key .en-lbl{font-size:1.2rem;color:#ffaa44;}
+body.en-mode .key .sh-lbl{font-size:0.7rem;color:#774422;}
+body.en-mode .key .main-lbl{font-size:0.65rem;color:#2a4055;margin-top:0;}
+
+/* SHIFT active: highlight shift chars */
+body.shift-on .key .sh-lbl{color:#aaffcc;font-weight:bold;}
+body.shift-on.en-mode .key .sh-lbl{color:#ffdd88;font-weight:bold;}
+body.shift-on .key .main-lbl{color:#3a5570;}
+body.shift-on.en-mode .key .en-lbl{color:#7a5530;}
 
 /* Wide keys */
 .key.w2{max-width:none;flex:2.2;}
 .key.w15{max-width:none;flex:1.5;}
-.key.space-key{max-width:none;flex:5;}
-.key .kr.small,.key .act-lbl{font-size:0.72rem;color:#3a5570;}
+.key.space-key{max-width:none;flex:4.5;}
+.key .act-lbl{font-size:0.72rem;color:#3a5570;}
 
-/* 한/영 toggle key */
-.key.toggle-key{
-  max-width:none;flex:1.6;
-  background:#0a1e30;border-color:#0077cc;
-}
+/* Shift key */
+.key.shift-key{max-width:none;flex:2;}
+.key.shift-key .act-lbl{color:#4a6680;font-size:0.8rem;}
+body.shift-on .key.shift-key{background:#0a2a1e;border-color:#00cc88;}
+body.shift-on .key.shift-key .act-lbl{color:#00ff99;}
+
+/* 한/영 toggle */
+.key.toggle-key{max-width:none;flex:1.5;background:#0a1e30;border-color:#0077cc;}
 .key.toggle-key:hover{background:#0d2840;border-color:#00aaff;}
-.key.toggle-key .act-lbl{color:#00aaff;font-size:0.75rem;letter-spacing:1px;}
+.key.toggle-key .act-lbl{color:#00aaff;font-size:0.72rem;letter-spacing:1px;}
 body.en-mode .key.toggle-key{background:#1a100a;border-color:#cc7700;}
-body.en-mode .key.toggle-key:hover{background:#221508;border-color:#ffaa00;}
 body.en-mode .key.toggle-key .act-lbl{color:#ffaa00;}
 
 /* V consonant */
 .key.v-key{background:#0b1a0e;border-color:#1e4028;}
 .key.v-key:hover{background:#132318;border-color:#00cc66;}
 .key.v-key .en-lbl{color:#1e5030;}
-.key.v-key .kr-lbl{color:#00ee88;font-size:1.4rem;}
+.key.v-key .main-lbl{color:#00ee88;font-size:1.35rem;}
 .key.v-key.pressed{background:#092015;border-color:#00ff88;}
 body.en-mode .key.v-key .en-lbl{color:#00ee88;}
-body.en-mode .key.v-key .kr-lbl{color:#1e5030;}
+body.en-mode .key.v-key .main-lbl{color:#1e5030;}
 
 /* F consonant */
 .key.f-key{background:#1a1508;border-color:#3d3008;}
 .key.f-key:hover{background:#221c09;border-color:#ccaa00;}
 .key.f-key .en-lbl{color:#4a3a08;}
-.key.f-key .kr-lbl{color:#ffcc00;font-size:1.4rem;}
+.key.f-key .main-lbl{color:#ffcc00;font-size:1.35rem;}
 .key.f-key.pressed{background:#1e1a06;border-color:#ffdd00;}
 body.en-mode .key.f-key .en-lbl{color:#ffcc00;}
-body.en-mode .key.f-key .kr-lbl{color:#4a3a08;}
+body.en-mode .key.f-key .main-lbl{color:#4a3a08;}
 
 /* Legend */
-.legend{
-  margin-top:16px;padding-top:14px;
-  border-top:1px solid #182a40;
-  display:flex;flex-direction:column;gap:7px;
-  font-size:0.72rem;letter-spacing:1px;color:#2a4055;
-}
+.legend{margin-top:16px;padding-top:14px;border-top:1px solid #182a40;display:flex;flex-direction:column;gap:7px;font-size:0.72rem;letter-spacing:1px;color:#2a4055;}
 .legend-row{display:flex;align-items:center;gap:10px;}
-.legend .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:1.05rem;}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:1.05rem;}
 .badge.v{background:#0b1a0e;border:1px solid #1e4028;color:#00ee88;}
 .badge.f{background:#1a1508;border:1px solid #3d3008;color:#ffcc00;}
 .legend .note{color:#334455;font-size:0.68rem;}
 
 /* Tabs */
 .tabs{display:flex;gap:6px;width:100%;max-width:700px;margin-bottom:14px;}
-.tab{
-  padding:6px 14px;background:#0c1520;
-  border:1px solid #1a2e48;border-radius:4px 4px 0 0;
-  color:#445577;font-size:0.72rem;cursor:pointer;letter-spacing:1px;transition:all .15s;
-}
+.tab{padding:6px 14px;background:#0c1520;border:1px solid #1a2e48;border-radius:4px 4px 0 0;color:#445577;font-size:0.72rem;cursor:pointer;letter-spacing:1px;transition:all .15s;}
 .tab.active{background:#07111e;border-color:#00aaff;border-bottom-color:#07111e;color:#00ccff;}
 .panel{display:none;}
 .panel.active{display:block;}
 
 /* Reference */
 .ref-grid{display:flex;gap:10px;flex-wrap:wrap;padding:12px 0;}
-.jamo-card{
-  display:flex;flex-direction:column;align-items:center;
-  gap:3px;padding:10px 8px;
-  background:#0d1828;border:1px solid #1c3050;
-  border-radius:6px;min-width:56px;cursor:pointer;transition:all .12s;
-}
+.jamo-card{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px;background:#0d1828;border:1px solid #1c3050;border-radius:6px;min-width:56px;cursor:pointer;transition:all .12s;}
 .jamo-card:hover{border-color:#0077cc;background:#162033;}
 .jamo-card .big{font-size:1.5rem;color:#90b8e0;}
 .jamo-card .label{font-size:0.6rem;color:#334455;letter-spacing:1px;}
@@ -189,10 +137,9 @@ body.en-mode .key.f-key .kr-lbl{color:#4a3a08;}
 <h1>한글 키보드 · V&F 자음</h1>
 <p class="sub">KOREAN KEYBOARD · V &amp; F CONSONANTS · CUSTOM DUBEOLSIK</p>
 
-<!-- Mode indicator -->
 <div class="mode-bar">
   <div class="mode-badge ko" id="modeBadge" onclick="toggleMode()">한국어 KO</div>
-  <span class="mode-hint">click badge or press <b style="color:#445577">` (backtick)</b> to toggle · 한/영</span>
+  <span class="mode-hint">` = 한/영 toggle &nbsp;·&nbsp; ⇧ = 쌍자음</span>
 </div>
 
 <div class="tabs">
@@ -200,7 +147,6 @@ body.en-mode .key.f-key .kr-lbl{color:#4a3a08;}
   <div class="tab" onclick="showTab('ref',event)">자음·모음 ALL JAMO</div>
 </div>
 
-<!-- TYPING PANEL -->
 <div id="tab-type" class="panel active" style="width:100%;max-width:700px;">
   <div class="output-wrap"><div id="output">&#8203;</div></div>
   <div class="btn-row">
@@ -210,47 +156,47 @@ body.en-mode .key.f-key .kr-lbl{color:#4a3a08;}
   </div>
 
   <div class="keyboard">
-    <!-- Row 1 -->
+    <!-- Row 1: Q–P  (KO shift: ㅃㅉㄸㄲㅆ _ _ _ ㅒ ㅖ) -->
     <div class="key-row">
-      <div class="key" data-k="q" data-kr="ㅂ" data-en="q"><span class="en-lbl">Q</span><span class="kr-lbl">ㅂ</span></div>
-      <div class="key" data-k="w" data-kr="ㅈ" data-en="w"><span class="en-lbl">W</span><span class="kr-lbl">ㅈ</span></div>
-      <div class="key" data-k="e" data-kr="ㄷ" data-en="e"><span class="en-lbl">E</span><span class="kr-lbl">ㄷ</span></div>
-      <div class="key" data-k="r" data-kr="ㄱ" data-en="r"><span class="en-lbl">R</span><span class="kr-lbl">ㄱ</span></div>
-      <div class="key" data-k="t" data-kr="ㅅ" data-en="t"><span class="en-lbl">T</span><span class="kr-lbl">ㅅ</span></div>
-      <div class="key" data-k="y" data-kr="ㅛ" data-en="y"><span class="en-lbl">Y</span><span class="kr-lbl">ㅛ</span></div>
-      <div class="key" data-k="u" data-kr="ㅕ" data-en="u"><span class="en-lbl">U</span><span class="kr-lbl">ㅕ</span></div>
-      <div class="key" data-k="i" data-kr="ㅑ" data-en="i"><span class="en-lbl">I</span><span class="kr-lbl">ㅑ</span></div>
-      <div class="key" data-k="o" data-kr="ㅐ" data-en="o"><span class="en-lbl">O</span><span class="kr-lbl">ㅐ</span></div>
-      <div class="key" data-k="p" data-kr="ㅔ" data-en="p"><span class="en-lbl">P</span><span class="kr-lbl">ㅔ</span></div>
+      <div class="key" data-k="q"  data-kr="ㅂ" data-krs="ㅃ" data-en="q"  data-ens="Q"><div class="top-row"><span class="en-lbl">Q</span><span class="sh-lbl">ㅃ</span></div><span class="main-lbl">ㅂ</span></div>
+      <div class="key" data-k="w"  data-kr="ㅈ" data-krs="ㅉ" data-en="w"  data-ens="W"><div class="top-row"><span class="en-lbl">W</span><span class="sh-lbl">ㅉ</span></div><span class="main-lbl">ㅈ</span></div>
+      <div class="key" data-k="e"  data-kr="ㄷ" data-krs="ㄸ" data-en="e"  data-ens="E"><div class="top-row"><span class="en-lbl">E</span><span class="sh-lbl">ㄸ</span></div><span class="main-lbl">ㄷ</span></div>
+      <div class="key" data-k="r"  data-kr="ㄱ" data-krs="ㄲ" data-en="r"  data-ens="R"><div class="top-row"><span class="en-lbl">R</span><span class="sh-lbl">ㄲ</span></div><span class="main-lbl">ㄱ</span></div>
+      <div class="key" data-k="t"  data-kr="ㅅ" data-krs="ㅆ" data-en="t"  data-ens="T"><div class="top-row"><span class="en-lbl">T</span><span class="sh-lbl">ㅆ</span></div><span class="main-lbl">ㅅ</span></div>
+      <div class="key" data-k="y"  data-kr="ㅛ" data-krs=""   data-en="y"  data-ens="Y"><div class="top-row"><span class="en-lbl">Y</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅛ</span></div>
+      <div class="key" data-k="u"  data-kr="ㅕ" data-krs=""   data-en="u"  data-ens="U"><div class="top-row"><span class="en-lbl">U</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅕ</span></div>
+      <div class="key" data-k="i"  data-kr="ㅑ" data-krs=""   data-en="i"  data-ens="I"><div class="top-row"><span class="en-lbl">I</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅑ</span></div>
+      <div class="key" data-k="o"  data-kr="ㅐ" data-krs="ㅒ" data-en="o"  data-ens="O"><div class="top-row"><span class="en-lbl">O</span><span class="sh-lbl">ㅒ</span></div><span class="main-lbl">ㅐ</span></div>
+      <div class="key" data-k="p"  data-kr="ㅔ" data-krs="ㅖ" data-en="p"  data-ens="P"><div class="top-row"><span class="en-lbl">P</span><span class="sh-lbl">ㅖ</span></div><span class="main-lbl">ㅔ</span></div>
       <div class="key w2" data-action="backspace"><span class="act-lbl">⌫ DEL</span></div>
     </div>
-    <!-- Row 2 -->
+    <!-- Row 2: A–; -->
     <div class="key-row">
       <div class="key w15" data-action="noop"></div>
-      <div class="key" data-k="a" data-kr="ㅁ" data-en="a"><span class="en-lbl">A</span><span class="kr-lbl">ㅁ</span></div>
-      <div class="key" data-k="s" data-kr="ㄴ" data-en="s"><span class="en-lbl">S</span><span class="kr-lbl">ㄴ</span></div>
-      <div class="key" data-k="d" data-kr="ㅇ" data-en="d"><span class="en-lbl">D</span><span class="kr-lbl">ㅇ</span></div>
-      <div class="key f-key" data-k="f" data-kr="ㆄ" data-en="f"><span class="en-lbl">F</span><span class="kr-lbl">ㆄ</span></div>
-      <div class="key" data-k="g" data-kr="ㄹ" data-en="g"><span class="en-lbl">G</span><span class="kr-lbl">ㄹ</span></div>
-      <div class="key" data-k="h" data-kr="ㅎ" data-en="h"><span class="en-lbl">H</span><span class="kr-lbl">ㅎ</span></div>
-      <div class="key" data-k="j" data-kr="ㅗ" data-en="j"><span class="en-lbl">J</span><span class="kr-lbl">ㅗ</span></div>
-      <div class="key" data-k="k" data-kr="ㅓ" data-en="k"><span class="en-lbl">K</span><span class="kr-lbl">ㅓ</span></div>
-      <div class="key" data-k="l" data-kr="ㅏ" data-en="l"><span class="en-lbl">L</span><span class="kr-lbl">ㅏ</span></div>
-      <div class="key" data-k=";" data-kr="ㅣ" data-en=";"><span class="en-lbl">;</span><span class="kr-lbl">ㅣ</span></div>
+      <div class="key" data-k="a"  data-kr="ㅁ" data-krs=""   data-en="a"  data-ens="A"><div class="top-row"><span class="en-lbl">A</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅁ</span></div>
+      <div class="key" data-k="s"  data-kr="ㄴ" data-krs=""   data-en="s"  data-ens="S"><div class="top-row"><span class="en-lbl">S</span><span class="sh-lbl"></span></div><span class="main-lbl">ㄴ</span></div>
+      <div class="key" data-k="d"  data-kr="ㅇ" data-krs=""   data-en="d"  data-ens="D"><div class="top-row"><span class="en-lbl">D</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅇ</span></div>
+      <div class="key f-key" data-k="f" data-kr="ㆄ" data-krs="" data-en="f" data-ens="F"><div class="top-row"><span class="en-lbl">F</span><span class="sh-lbl"></span></div><span class="main-lbl">ㆄ</span></div>
+      <div class="key" data-k="g"  data-kr="ㄹ" data-krs=""   data-en="g"  data-ens="G"><div class="top-row"><span class="en-lbl">G</span><span class="sh-lbl"></span></div><span class="main-lbl">ㄹ</span></div>
+      <div class="key" data-k="h"  data-kr="ㅎ" data-krs=""   data-en="h"  data-ens="H"><div class="top-row"><span class="en-lbl">H</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅎ</span></div>
+      <div class="key" data-k="j"  data-kr="ㅗ" data-krs=""   data-en="j"  data-ens="J"><div class="top-row"><span class="en-lbl">J</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅗ</span></div>
+      <div class="key" data-k="k"  data-kr="ㅓ" data-krs=""   data-en="k"  data-ens="K"><div class="top-row"><span class="en-lbl">K</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅓ</span></div>
+      <div class="key" data-k="l"  data-kr="ㅏ" data-krs=""   data-en="l"  data-ens="L"><div class="top-row"><span class="en-lbl">L</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅏ</span></div>
+      <div class="key" data-k=";"  data-kr="ㅣ" data-krs=""   data-en=";"  data-ens=":"><div class="top-row"><span class="en-lbl">;</span><span class="sh-lbl">:</span></div><span class="main-lbl">ㅣ</span></div>
       <div class="key w2" data-action="enter"><span class="act-lbl">↵ ENTER</span></div>
     </div>
-    <!-- Row 3 -->
+    <!-- Row 3: Shift, Z–, -->
     <div class="key-row">
-      <div class="key w2" data-action="noop"></div>
-      <div class="key" data-k="z" data-kr="ㅋ" data-en="z"><span class="en-lbl">Z</span><span class="kr-lbl">ㅋ</span></div>
-      <div class="key" data-k="x" data-kr="ㅌ" data-en="x"><span class="en-lbl">X</span><span class="kr-lbl">ㅌ</span></div>
-      <div class="key" data-k="c" data-kr="ㅊ" data-en="c"><span class="en-lbl">C</span><span class="kr-lbl">ㅊ</span></div>
-      <div class="key v-key" data-k="v" data-kr="ㅸ" data-en="v"><span class="en-lbl">V</span><span class="kr-lbl">ㅸ</span></div>
-      <div class="key" data-k="b" data-kr="ㅍ" data-en="b"><span class="en-lbl">B</span><span class="kr-lbl">ㅍ</span></div>
-      <div class="key" data-k="n" data-kr="ㅠ" data-en="n"><span class="en-lbl">N</span><span class="kr-lbl">ㅠ</span></div>
-      <div class="key" data-k="m" data-kr="ㅜ" data-en="m"><span class="en-lbl">M</span><span class="kr-lbl">ㅜ</span></div>
-      <div class="key" data-k="," data-kr="ㅡ" data-en=","><span class="en-lbl">,</span><span class="kr-lbl">ㅡ</span></div>
-      <div class="key w2" data-action="noop"></div>
+      <div class="key shift-key" data-action="shift"><span class="act-lbl">⇧ SHIFT</span></div>
+      <div class="key" data-k="z"  data-kr="ㅋ" data-krs=""   data-en="z"  data-ens="Z"><div class="top-row"><span class="en-lbl">Z</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅋ</span></div>
+      <div class="key" data-k="x"  data-kr="ㅌ" data-krs=""   data-en="x"  data-ens="X"><div class="top-row"><span class="en-lbl">X</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅌ</span></div>
+      <div class="key" data-k="c"  data-kr="ㅊ" data-krs=""   data-en="c"  data-ens="C"><div class="top-row"><span class="en-lbl">C</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅊ</span></div>
+      <div class="key v-key" data-k="v" data-kr="ㅸ" data-krs="" data-en="v" data-ens="V"><div class="top-row"><span class="en-lbl">V</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅸ</span></div>
+      <div class="key" data-k="b"  data-kr="ㅍ" data-krs=""   data-en="b"  data-ens="B"><div class="top-row"><span class="en-lbl">B</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅍ</span></div>
+      <div class="key" data-k="n"  data-kr="ㅠ" data-krs=""   data-en="n"  data-ens="N"><div class="top-row"><span class="en-lbl">N</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅠ</span></div>
+      <div class="key" data-k="m"  data-kr="ㅜ" data-krs=""   data-en="m"  data-ens="M"><div class="top-row"><span class="en-lbl">M</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅜ</span></div>
+      <div class="key" data-k=","  data-kr="ㅡ" data-krs=""   data-en=","  data-ens="<"><div class="top-row"><span class="en-lbl">,</span><span class="sh-lbl"></span></div><span class="main-lbl">ㅡ</span></div>
+      <div class="key shift-key" data-action="shift"><span class="act-lbl">⇧ SHIFT</span></div>
     </div>
     <!-- Space row -->
     <div class="key-row">
@@ -271,7 +217,6 @@ body.en-mode .key.f-key .kr-lbl{color:#4a3a08;}
   </div>
 </div>
 
-<!-- REFERENCE PANEL -->
 <div id="tab-ref" class="panel" style="width:100%;max-width:700px;">
   <div class="keyboard">
     <p class="section-label">자음 CONSONANTS</p>
@@ -284,86 +229,97 @@ body.en-mode .key.f-key .kr-lbl{color:#4a3a08;}
 </div>
 
 <script>
-let text = '';
-let mode = 'ko'; // 'ko' | 'en'
+let text='', mode='ko', shifted=false;
 
-const KRMAP = {
-  q:'ㅂ',w:'ㅈ',e:'ㄷ',r:'ㄱ',t:'ㅅ',y:'ㅛ',u:'ㅕ',i:'ㅑ',o:'ㅐ',p:'ㅔ',
-  a:'ㅁ',s:'ㄴ',d:'ㅇ',f:'ㆄ',g:'ㄹ',h:'ㅎ',j:'ㅗ',k:'ㅓ',l:'ㅏ',';':'ㅣ',
-  z:'ㅋ',x:'ㅌ',c:'ㅊ',v:'ㅸ',b:'ㅍ',n:'ㅠ',m:'ㅜ',',':'ㅡ'
-};
-// English: just the key itself
-const ENMAP = {};
-'qwertyuiopasdfghjkl;zxcvbnm,'.split('').forEach(k=>{ ENMAP[k]=k; });
-ENMAP[';']=';'; ENMAP[',']=',';
+/* Korean maps */
+const KRMAP={q:'ㅂ',w:'ㅈ',e:'ㄷ',r:'ㄱ',t:'ㅅ',y:'ㅛ',u:'ㅕ',i:'ㅑ',o:'ㅐ',p:'ㅔ',a:'ㅁ',s:'ㄴ',d:'ㅇ',f:'ㆄ',g:'ㄹ',h:'ㅎ',j:'ㅗ',k:'ㅓ',l:'ㅏ',';':'ㅣ',z:'ㅋ',x:'ㅌ',c:'ㅊ',v:'ㅸ',b:'ㅍ',n:'ㅠ',m:'ㅜ',',':'ㅡ'};
+const KRSMAP={q:'ㅃ',w:'ㅉ',e:'ㄸ',r:'ㄲ',t:'ㅆ',o:'ㅒ',p:'ㅖ'};
 
-function getMap(){ return mode==='ko' ? KRMAP : ENMAP; }
+function getChar(k){
+  if(mode==='ko'){
+    if(shifted && KRSMAP[k]) return KRSMAP[k];
+    return KRMAP[k]||null;
+  } else {
+    const base=k===';'?';':k===','?',':k;
+    return shifted ? base.toUpperCase() : base;
+  }
+}
 
 function render(){
   const el=document.getElementById('output');
   el.textContent=text||'';
   if(!text) el.innerHTML='&#8203;';
 }
-function ins(ch){ text+=ch; render(); }
-function deleteChar(){ text=[...text].slice(0,-1).join(''); render(); }
-function clearAll(){ text=''; render(); }
+function ins(ch){text+=ch;render();}
+function deleteChar(){text=[...text].slice(0,-1).join('');render();}
+function clearAll(){text='';render();}
 function copyText(){
   navigator.clipboard.writeText(text).then(()=>{
     const b=document.getElementById('copyBtn');
-    b.textContent='✓ COPIED'; b.classList.add('copied');
-    setTimeout(()=>{ b.textContent='⎘ COPY'; b.classList.remove('copied'); },1600);
+    b.textContent='✓ COPIED';b.classList.add('copied');
+    setTimeout(()=>{b.textContent='⎘ COPY';b.classList.remove('copied');},1600);
   });
 }
 
+function setShift(on){
+  shifted=on;
+  if(on) document.body.classList.add('shift-on');
+  else   document.body.classList.remove('shift-on');
+}
+function toggleShift(){ setShift(!shifted); }
+
 function toggleMode(){
-  mode = mode==='ko' ? 'en' : 'ko';
+  mode=mode==='ko'?'en':'ko';
+  setShift(false);
   const badge=document.getElementById('modeBadge');
   if(mode==='ko'){
     document.body.classList.remove('en-mode');
-    badge.className='mode-badge ko';
-    badge.textContent='한국어 KO';
+    badge.className='mode-badge ko';badge.textContent='한국어 KO';
   } else {
     document.body.classList.add('en-mode');
-    badge.className='mode-badge en';
-    badge.textContent='ENGLISH EN';
+    badge.className='mode-badge en';badge.textContent='ENGLISH EN';
   }
 }
 
-document.addEventListener('keydown', e=>{
+/* Physical keyboard */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Shift'){setShift(true);return;}
   if(e.ctrlKey||e.metaKey||e.altKey) return;
   const raw=e.key;
-  // backtick toggles mode
-  if(raw==='`'){ toggleMode(); e.preventDefault(); return; }
+  if(raw==='`'){toggleMode();e.preventDefault();return;}
   const k=raw===';'?';':raw===','?',':raw.toLowerCase();
-  if(k==='backspace'){ deleteChar(); e.preventDefault(); }
-  else if(k==='enter'){ ins('\n'); e.preventDefault(); }
-  else if(k===' '){ ins(' '); e.preventDefault(); }
-  else {
-    const map=getMap();
-    if(map[k]){ ins(map[k]); e.preventDefault(); flash(k); }
+  if(k==='backspace'){deleteChar();e.preventDefault();}
+  else if(k==='enter'){ins('\n');e.preventDefault();}
+  else if(k===' '){ins(' ');e.preventDefault();}
+  else{
+    const ch=getChar(k);
+    if(ch){ins(ch);e.preventDefault();flash(k);if(shifted)setShift(false);}
   }
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='Shift') setShift(false);
 });
 
 function flash(k){
   const el=document.querySelector(`[data-k="${k}"]`);
-  if(!el) return;
+  if(!el)return;
   el.classList.add('pressed');
   setTimeout(()=>el.classList.remove('pressed'),130);
 }
 
-document.addEventListener('click', e=>{
+/* Click */
+document.addEventListener('click',e=>{
   const key=e.target.closest('.key');
-  if(!key) return;
-  const action=key.dataset.action;
-  const k=key.dataset.k;
-  if(action==='toggle'){ toggleMode(); return; }
-  if(action==='backspace'){ deleteChar(); return; }
-  if(action==='enter'){ ins('\n'); return; }
-  if(action==='space'){ ins(' '); return; }
+  if(!key)return;
+  const action=key.dataset.action,k=key.dataset.k;
+  if(action==='toggle'){toggleMode();return;}
+  if(action==='shift'){toggleShift();return;}
+  if(action==='backspace'){deleteChar();return;}
+  if(action==='enter'){ins('\n');return;}
+  if(action==='space'){ins(' ');return;}
   if(k){
-    const map=getMap();
-    const ch=map[k]||key.dataset.kr;
-    if(ch){ ins(ch); flash(k); }
+    const ch=getChar(k);
+    if(ch){ins(ch);flash(k);if(shifted)setShift(false);}
   }
 });
 
@@ -371,54 +327,22 @@ function showTab(id,ev){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
-  if(ev) ev.target.classList.add('active');
+  if(ev)ev.target.classList.add('active');
 }
 
-const CONSONANTS=[
-  ['ㄱ','기역'],['ㄲ','쌍기역'],['ㄴ','니은'],['ㄷ','디귿'],['ㄸ','쌍디귿'],
-  ['ㄹ','리을'],['ㅁ','미음'],['ㅂ','비읍'],['ㅃ','쌍비읍'],['ㅅ','시옷'],
-  ['ㅆ','쌍시옷'],['ㅇ','이응'],['ㅈ','지읒'],['ㅉ','쌍지읒'],['ㅊ','치읓'],
-  ['ㅋ','키읔'],['ㅌ','티읕'],['ㅍ','피읖'],['ㅎ','히읗']
-];
-const VOWELS=[
-  ['ㅏ','아'],['ㅐ','애'],['ㅑ','야'],['ㅒ','얘'],['ㅓ','어'],['ㅔ','에'],
-  ['ㅕ','여'],['ㅖ','예'],['ㅗ','오'],['ㅘ','와'],['ㅙ','왜'],['ㅚ','외'],
-  ['ㅛ','요'],['ㅜ','우'],['ㅝ','워'],['ㅞ','웨'],['ㅟ','위'],['ㅠ','유'],
-  ['ㅡ','으'],['ㅢ','의'],['ㅣ','이']
-];
-const SPECIAL=[
-  ['ㆄ','F 자음','specf','f-sound'],
-  ['ㅸ','V 자음','spec','v-sound']
-];
+const CONSONANTS=[['ㄱ','기역'],['ㄲ','쌍기역'],['ㄴ','니은'],['ㄷ','디귿'],['ㄸ','쌍디귿'],['ㄹ','리을'],['ㅁ','미음'],['ㅂ','비읍'],['ㅃ','쌍비읍'],['ㅅ','시옷'],['ㅆ','쌍시옷'],['ㅇ','이응'],['ㅈ','지읒'],['ㅉ','쌍지읒'],['ㅊ','치읓'],['ㅋ','키읔'],['ㅌ','티읕'],['ㅍ','피읖'],['ㅎ','히읗']];
+const VOWELS=[['ㅏ','아'],['ㅐ','애'],['ㅑ','야'],['ㅒ','얘'],['ㅓ','어'],['ㅔ','에'],['ㅕ','여'],['ㅖ','예'],['ㅗ','오'],['ㅘ','와'],['ㅙ','왜'],['ㅚ','외'],['ㅛ','요'],['ㅜ','우'],['ㅝ','워'],['ㅞ','웨'],['ㅟ','위'],['ㅠ','유'],['ㅡ','으'],['ㅢ','의'],['ㅣ','이']];
+const SPECIAL=[['ㆄ','F 자음','specf','f-sound'],['ㅸ','V 자음','spec','v-sound']];
 
 function buildRef(){
   const cg=document.getElementById('jamo-consonants');
-  CONSONANTS.forEach(([ch,name])=>{
-    const d=document.createElement('div');
-    d.className='jamo-card';
-    d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span>`;
-    d.addEventListener('click',()=>ins(ch));
-    cg.appendChild(d);
-  });
+  CONSONANTS.forEach(([ch,name])=>{const d=document.createElement('div');d.className='jamo-card';d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span>`;d.addEventListener('click',()=>ins(ch));cg.appendChild(d);});
   const vg=document.getElementById('jamo-vowels');
-  VOWELS.forEach(([ch,name])=>{
-    const d=document.createElement('div');
-    d.className='jamo-card';
-    d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span>`;
-    d.addEventListener('click',()=>ins(ch));
-    vg.appendChild(d);
-  });
+  VOWELS.forEach(([ch,name])=>{const d=document.createElement('div');d.className='jamo-card';d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span>`;d.addEventListener('click',()=>ins(ch));vg.appendChild(d);});
   const sg=document.getElementById('jamo-special');
-  SPECIAL.forEach(([ch,name,cls,note])=>{
-    const d=document.createElement('div');
-    d.className=`jamo-card ${cls}`;
-    d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span><span class="label" style="font-size:.55rem">${note}</span>`;
-    d.addEventListener('click',()=>{ ins(ch); showTab('type'); document.querySelector('.tab').classList.add('active'); });
-    sg.appendChild(d);
-  });
+  SPECIAL.forEach(([ch,name,cls,note])=>{const d=document.createElement('div');d.className=`jamo-card ${cls}`;d.innerHTML=`<span class="big">${ch}</span><span class="label">${name}</span><span class="label" style="font-size:.55rem">${note}</span>`;d.addEventListener('click',()=>{ins(ch);showTab('type');document.querySelector('.tab').classList.add('active');});sg.appendChild(d);});
 }
-buildRef();
-render();
+buildRef();render();
 </script>
 </body>
 </html>
