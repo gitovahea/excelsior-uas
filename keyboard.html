@@ -423,6 +423,34 @@ function copyText(){
   });
 }
 
+/* ── TTS 전처리: ㆄ/ㅸ + 다음 음절 → 표준 자음으로 재조합 ── */
+function ttsPreprocess(text){
+  const REPLACE={'ㆄ':'ㅍ','ㅸ':'ㅂ'};
+  let out='';
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(ch==='ㆄ'||ch==='ㅸ'){
+      const rep=REPLACE[ch];
+      const next=text[i+1];
+      const nc=next?next.charCodeAt(0):0;
+      if(next && nc>=0xAC00 && nc<=0xD7A3){
+        // 다음 글자가 한글 음절이면 초성을 rep으로 바꿔서 재조합
+        const offset=nc-0xAC00;
+        const jong=offset%28;
+        const jung=Math.floor(offset/28)%21;
+        const newCho=CHO_IDX[rep];
+        out+=String.fromCharCode(0xAC00+(newCho*21+jung)*28+jong);
+        i++; // 다음 글자 소비
+      } else {
+        out+=rep; // 뒤에 모음 없으면 그냥 ㅍ/ㅂ
+      }
+    } else {
+      out+=ch;
+    }
+  }
+  return out;
+}
+
 /* ── TTS / Voice ── */
 let voices=[];
 
@@ -470,8 +498,8 @@ function speakText(){
   if(!t) return;
   if(!window.speechSynthesis){ alert('이 브라우저는 음성 지원이 안 됩니다.'); return; }
   speechSynthesis.cancel();
-  // ㆄ·ㅸ 는 TTS 데이터 없음 → 가장 가까운 표준 자음으로 대체 (읽기 전용)
-  const ttsText=t.replace(/ㆄ/g,'ㅍ').replace(/ㅸ/g,'ㅂ');
+  // ㆄ·ㅸ → 뒤에 오는 음절까지 재조합해서 TTS에 넘김
+  const ttsText=ttsPreprocess(t);
   const utt=new SpeechSynthesisUtterance(ttsText);
   const sel=document.getElementById('voiceSelect');
   const chosen=voices.find(v=>v.name===sel.value);
