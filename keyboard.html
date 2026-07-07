@@ -30,6 +30,10 @@ h1{font-size:1.45rem;color:#00ffff;text-shadow:0 0 14px #00ffff88;margin-bottom:
 .btn:hover{border-color:#00aaff;color:#00ccff;}
 .btn.copy{margin-left:auto;}
 .btn.copied{border-color:#00ff88!important;color:#00ff88!important;}
+.voice-row{display:flex;align-items:center;gap:10px;width:100%;max-width:700px;margin-bottom:8px;}
+.voice-label{font-size:0.7rem;color:#334455;letter-spacing:1px;white-space:nowrap;}
+#voiceSelect{flex:1;background:#0c1520;border:1px solid #1a2e48;border-radius:4px;color:#5577aa;font-family:'Courier New',monospace;font-size:0.72rem;padding:5px 8px;cursor:pointer;}
+#voiceSelect option{background:#0c1520;}
 
 /* ── Keyboard ── */
 .keyboard{background:#070c16;border:1px solid #182a40;border-radius:12px;padding:18px 14px;width:100%;max-width:700px;user-select:none;}
@@ -154,6 +158,10 @@ body.en-mode .key.f-key .main-lbl{color:#4a3a08;}
     <button class="btn" onclick="clearAll()">✕ CLEAR</button>
     <button class="btn" id="speakBtn" onclick="speakText()">🔊 읽기</button>
     <button class="btn copy" id="copyBtn" onclick="copyText()">⎘ COPY</button>
+  </div>
+  <div class="voice-row">
+    <span class="voice-label">🎙 목소리</span>
+    <select id="voiceSelect"></select>
   </div>
 
   <div class="keyboard">
@@ -415,14 +423,59 @@ function copyText(){
   });
 }
 
+/* ── TTS / Voice ── */
+let voices=[];
+
+function loadVoices(){
+  voices=speechSynthesis.getVoices();
+  const sel=document.getElementById('voiceSelect');
+  sel.innerHTML='';
+  const lang=mode==='ko'?'ko':'en';
+  // preferred: voices matching current mode lang
+  const preferred=voices.filter(v=>v.lang.startsWith(lang));
+  const rest=voices.filter(v=>!v.lang.startsWith(lang));
+  const addOpt=(v,grp)=>{
+    const o=document.createElement('option');
+    o.value=v.name;
+    o.textContent=`${v.name} (${v.lang})`;
+    if(grp) o.style.color='#778899';
+    sel.appendChild(o);
+  };
+  if(preferred.length){
+    const g=document.createElement('optgroup');
+    g.label=lang==='ko'?'한국어 음성':'English voices';
+    preferred.forEach(v=>{ const o=document.createElement('option');o.value=v.name;o.textContent=`${v.name} (${v.lang})`;g.appendChild(o); });
+    sel.appendChild(g);
+  }
+  if(rest.length){
+    const g=document.createElement('optgroup');
+    g.label='기타 / Other';
+    rest.forEach(v=>{ const o=document.createElement('option');o.value=v.name;o.textContent=`${v.name} (${v.lang})`;g.appendChild(o); });
+    sel.appendChild(g);
+  }
+  if(!sel.options.length){
+    const o=document.createElement('option');
+    o.textContent='(사용 가능한 음성 없음)';
+    sel.appendChild(o);
+  }
+}
+
+if(window.speechSynthesis){
+  speechSynthesis.onvoiceschanged=loadVoices;
+  loadVoices();
+}
+
 function speakText(){
   const t=getDisplayText().trim();
   if(!t) return;
   if(!window.speechSynthesis){ alert('이 브라우저는 음성 지원이 안 됩니다.'); return; }
   speechSynthesis.cancel();
   const utt=new SpeechSynthesisUtterance(t);
-  utt.lang=mode==='ko'?'ko-KR':'en-US';
-  utt.rate=0.88;
+  const sel=document.getElementById('voiceSelect');
+  const chosen=voices.find(v=>v.name===sel.value);
+  if(chosen) utt.voice=chosen;
+  utt.lang=chosen?chosen.lang:(mode==='ko'?'ko-KR':'en-US');
+  utt.rate=0.85;
   utt.pitch=1;
   const btn=document.getElementById('speakBtn');
   btn.textContent='🔊 ...';
@@ -453,6 +506,7 @@ function toggleMode(){
     document.body.classList.add('en-mode');
     badge.className='mode-badge en';badge.textContent='ENGLISH EN';
   }
+  if(window.speechSynthesis) loadVoices();
 }
 
 /* ── Physical keyboard ── */
