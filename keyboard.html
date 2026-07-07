@@ -152,6 +152,7 @@ body.en-mode .key.f-key .main-lbl{color:#4a3a08;}
   <div class="btn-row">
     <button class="btn" onclick="deleteChar()">⌫ DELETE</button>
     <button class="btn" onclick="clearAll()">✕ CLEAR</button>
+    <button class="btn" id="speakBtn" onclick="speakText()">🔊 읽기</button>
     <button class="btn copy" id="copyBtn" onclick="copyText()">⎘ COPY</button>
   </div>
 
@@ -412,6 +413,23 @@ function copyText(){
     b.textContent='✓ COPIED';b.classList.add('copied');
     setTimeout(()=>{b.textContent='⎘ COPY';b.classList.remove('copied');},1600);
   });
+}
+
+function speakText(){
+  const t=getDisplayText().trim();
+  if(!t) return;
+  if(!window.speechSynthesis){ alert('이 브라우저는 음성 지원이 안 됩니다.'); return; }
+  speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(t);
+  utt.lang=mode==='ko'?'ko-KR':'en-US';
+  utt.rate=0.88;
+  utt.pitch=1;
+  const btn=document.getElementById('speakBtn');
+  btn.textContent='🔊 ...';
+  btn.disabled=true;
+  utt.onend=()=>{ btn.textContent='🔊 읽기'; btn.disabled=false; };
+  utt.onerror=()=>{ btn.textContent='🔊 읽기'; btn.disabled=false; };
+  speechSynthesis.speak(utt);
 }
 
 /* ── Shift ── */
