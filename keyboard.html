@@ -470,7 +470,9 @@ function speakText(){
   if(!t) return;
   if(!window.speechSynthesis){ alert('이 브라우저는 음성 지원이 안 됩니다.'); return; }
   speechSynthesis.cancel();
-  const utt=new SpeechSynthesisUtterance(t);
+  // ㆄ·ㅸ 는 TTS 데이터 없음 → 가장 가까운 표준 자음으로 대체 (읽기 전용)
+  const ttsText=t.replace(/ㆄ/g,'ㅍ').replace(/ㅸ/g,'ㅂ');
+  const utt=new SpeechSynthesisUtterance(ttsText);
   const sel=document.getElementById('voiceSelect');
   const chosen=voices.find(v=>v.name===sel.value);
   if(chosen) utt.voice=chosen;
